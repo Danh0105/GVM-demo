@@ -1,0 +1,30 @@
+:root {
+    --app-font-scale: 0.9;
+}
+
+html,
+body,
+#app,
+.zaui-app {
+    font-size: calc(16px * var(--app-font-scale));
+}
+
+.section-container {
+    padding: 16px;
+    background: #ffffff;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.zaui-tabs-tabbar-item {
+    &:focus,
+    &:active {
+        outline: none;
+    }
+}
+
+.zaui-snackbar {
+    &-info {
+        color: #767a7f;
+    }
+}
