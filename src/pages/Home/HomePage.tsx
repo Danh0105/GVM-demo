@@ -1954,7 +1954,7 @@ const HomePage: React.FunctionComponent = () => {
                 <HeaderLogo aria-label="Công dân số" />
                 <HeaderText>
                     <HeaderTitle>CÔNG DÂN SỐ</HeaderTitle>
-                    <HeaderSubTitle>Xã Xuân Thới Sơn</HeaderSubTitle>
+                    <HeaderSubTitle>Xã Lộc Ninh - Tỉnh Tây Ninh</HeaderSubTitle>
                 </HeaderText>
                 {/* <HeaderActions>
                     <SquareButton aria-label="Tìm kiếm">
