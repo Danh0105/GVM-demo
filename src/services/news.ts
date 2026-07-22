@@ -1,3 +1,5 @@
+import { apiFetch as fetch } from "./api-client";
+
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -42,21 +44,21 @@ export type Article = {
 export type ArticleQuery = {
     page?: number;
     size?: number;
-  
+
     limit?: number;
     keyword?: string;
     search?: string;
-  
+
     typeId?: string;
-  };
-  function buildArticleQuery(query: ArticleQuery = {}) {
+};
+function buildArticleQuery(query: ArticleQuery = {}) {
     return buildQuery({
-      page: query.page,
-      size: query.size ?? query.limit,
-      keyword: query.keyword ?? query.search,
-      typeId: query.typeId,
+        page: query.page,
+        size: query.size ?? query.limit,
+        keyword: query.keyword ?? query.search,
+        typeId: query.typeId,
     });
-  }
+}
 export type PaginatedResponse<T> = {
     data?: T[];
     items?: T[];
@@ -225,20 +227,20 @@ export async function getArticleType(id: string): Promise<ArticleType> {
 
 export async function getArticles(
     query: ArticleQuery = {},
-  ): Promise<Article[]> {
+): Promise<Article[]> {
     const response = await fetch(
-      `${API_BASE_URL}/articles${buildArticleQuery(query)}`,
-      {
-        method: "GET",
-        headers: getHeaders(),
-        cache: "no-store",
-      },
+        `${API_BASE_URL}/articles${buildArticleQuery(query)}`,
+        {
+            method: "GET",
+            headers: getHeaders(),
+            cache: "no-store",
+        },
     );
-  
+
     const result = await handleResponse<unknown>(response);
-  
+
     return normalizeList<Article>(result);
-  }
+}
 
 export async function getArticle(id: string): Promise<Article> {
     const response = await fetch(`${API_BASE_URL}/articles/${id}`, {
@@ -271,11 +273,15 @@ export async function updateArticleLike(
     id: string,
     payload: UpdateArticleLikePayload,
 ): Promise<Article> {
-    const response = await fetch(`${API_BASE_URL}/articles/${id}/like`, {
-        method: "PATCH",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/articles/${id}/like`,
+        {
+            method: "PATCH",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 

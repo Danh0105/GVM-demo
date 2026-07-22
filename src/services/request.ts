@@ -1,64 +1,73 @@
-import { UNAUTHORIZED } from "@constants";
 import { BASE_URL } from "@constants/common";
-import { ResData } from "@dts";
-import { useStore as store } from "@store";
-import { getToken } from "./zalo";
+import { apiFetch } from "./api-client";
 
 interface FetchOptions {
     useAuth?: boolean;
     baseUrl?: string;
-    customHeader?: object;
 }
+
+type ResponseEnvelope<T> = {
+    success?: boolean;
+    data?: T;
+    err?: number | string;
+    error?: string;
+    message?: string | string[];
+};
 
 export async function request<T>(
     method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
     url: string,
-    data?: any,
+    data?: object,
     options?: FetchOptions,
-    retryCount = 0,
 ): Promise<T> {
-    const { useAuth = true, baseUrl = BASE_URL } = options || {};
-    const headers = new Headers();
-    const { token } = store.getState();
-
-    if (useAuth && token) {
-        headers.append("Authorization", `Bearer ${token}`);
-    }
-    if (options && options.customHeader) {
-        const { customHeader } = options;
-        Object.keys(customHeader).forEach(key => {
-            headers.append(key, `${customHeader[key]}`);
-        });
-    }
-    const requestUrl = new URL(url, baseUrl);
-    const requestOptions: { [key: string]: any } = {
+    const { useAuth = false, baseUrl = BASE_URL } = options || {};
+    const requestUrl = new URL(url, `${baseUrl.replace(/\/+$/, "")}/`);
+    const requestOptions: NonNullable<Parameters<typeof window.fetch>[1]> = {
         method,
-        headers,
+        headers: {
+            Accept: "application/json",
+        },
     };
 
     if (method === "GET") {
-        requestUrl.search = new URLSearchParams(data).toString();
+        Object.entries(data || {}).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                requestUrl.searchParams.set(key, String(value));
+            }
+        });
     } else {
-        headers.append("Content-Type", "application/json");
-        requestOptions.body = JSON.stringify(data);
+        requestOptions.headers = {
+            ...requestOptions.headers,
+            "Content-Type": "application/json",
+        };
+        requestOptions.body = JSON.stringify(data || {});
     }
-    const response = await fetch(requestUrl.toString(), {
-        ...requestOptions,
+
+    const response = await apiFetch(requestUrl, requestOptions, {
+        auth: useAuth,
     });
 
-    const resData = (await response.json()) as ResData<T>;
-    if (resData.err === UNAUTHORIZED && retryCount === 0 && useAuth && token) {
-        try {
-            const accessToken = await getToken();
-            store.setState(state => ({ ...state, token: accessToken }));
-            // return request(method, url, data, options, retryCount + 1);
-        } catch (err) {
-            throw new Error((err as any).message);
+    if (response.status === 204) {
+        return undefined as T;
+    }
+
+    const body = (await response.json()) as ResponseEnvelope<T> | T;
+
+    if (body && typeof body === "object") {
+        const envelope = body as ResponseEnvelope<T>;
+
+        if (envelope.err || envelope.success === false) {
+            const message = Array.isArray(envelope.message)
+                ? envelope.message.join(", ")
+                : envelope.message || envelope.error || "Yêu cầu thất bại.";
+
+            throw new Error(message);
+        }
+
+        if (Object.prototype.hasOwnProperty.call(envelope, "data")) {
+            return envelope.data as T;
         }
     }
-    if (resData.err || !resData.data) {
-        // eslint-disable-next-line no-throw-literal
-        throw { code: resData.err, message: resData.message };
-    }
-    return resData.data;
+
+    return body as T;
 }

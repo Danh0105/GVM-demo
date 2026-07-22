@@ -1,4 +1,5 @@
 import AppHeader from "@components/layout/AppHeader";
+import AppBottomNav from "@/components/layout/AppBottomNav";
 import React from "react";
 import styled from "styled-components";
 import { Icon, Page, useNavigate } from "zmp-ui";
@@ -15,13 +16,6 @@ type NotificationItem = {
     description?: string;
     date: string;
     image: string;
-};
-
-type NavItem = {
-    label: string;
-    icon: React.ComponentProps<typeof Icon>["icon"];
-    path: string;
-    active?: boolean;
 };
 
 const latestNotification: NotificationItem = {
@@ -71,19 +65,6 @@ const notifications: NotificationItem[] = [
     },
 ];
 
-const navItems: NavItem[] = [
-    { label: "Trang chủ", icon: "zi-home", path: "/" },
-    { label: "Tin tức", icon: "zi-note", path: "/news" },
-    { label: "Cộng đồng", icon: "zi-chat", path: "/feedbacks" },
-    {
-        label: "Thông báo",
-        icon: "zi-notif",
-        path: "/notifications",
-        active: true,
-    },
-    { label: "Tài khoản", icon: "zi-user", path: "/profile" },
-];
-
 const PageWrapper = styled(Page)`
     min-height: 100vh;
     max-width: 430px;
@@ -100,77 +81,6 @@ const PageWrapper = styled(Page)`
 
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
         Helvetica, Arial, sans-serif;
-`;
-
-const HeaderButton = styled.button`
-    width: 42px;
-    height: 42px;
-    flex: 0 0 auto;
-
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 15px;
-
-    display: grid;
-    place-items: center;
-
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.14);
-    box-shadow: 0 8px 18px rgba(0, 50, 95, 0.18),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(8px);
-
-    &:active {
-        transform: scale(0.94);
-        background: rgba(255, 255, 255, 0.24);
-    }
-`;
-
-const HeaderActions = styled.div`
-    display: flex;
-    gap: 7px;
-`;
-
-const SegmentedActions = styled.div`
-    width: 88px;
-    height: 42px;
-    flex: 0 0 auto;
-
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 999px;
-
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.18);
-    box-shadow: 0 8px 18px rgba(0, 50, 95, 0.18),
-        inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    backdrop-filter: blur(8px);
-`;
-
-const SegmentButton = styled.button`
-    border: 0;
-    display: grid;
-    place-items: center;
-    color: inherit;
-    background: transparent;
-
-    & + & {
-        border-left: 1px solid rgba(0, 50, 95, 0.18);
-    }
-
-    &:active {
-        background: rgba(255, 255, 255, 0.18);
-    }
-
-    span {
-        width: 5px;
-        height: 5px;
-        border-radius: 999px;
-        background: currentColor;
-        box-shadow: -10px 0 0 currentColor, 10px 0 0 currentColor;
-    }
 `;
 
 const Content = styled.main`
@@ -331,49 +241,6 @@ const FloatingButton = styled.button`
     }
 `;
 
-const BottomNav = styled.nav`
-    position: fixed;
-    inset: auto auto 0 50%;
-    transform: translateX(-50%);
-    z-index: 20;
-
-    width: min(100vw, 430px);
-    height: calc(76px + var(--zaui-safe-area-inset-bottom, 0px));
-    padding-bottom: var(--zaui-safe-area-inset-bottom, 0px);
-
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-
-    background: rgba(255, 255, 255, 0.97);
-    border-top: 1px solid rgba(0, 83, 145, 0.08);
-    box-shadow: 0 -8px 24px rgba(30, 35, 50, 0.08);
-    backdrop-filter: blur(18px);
-`;
-
-const NavButton = styled.button<{ $active?: boolean }>`
-    border: 0;
-    border-radius: ${({ $active }) => ($active ? "18px" : "0")};
-    margin: ${({ $active }) => ($active ? "8px 4px" : "0")};
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-
-    color: ${({ $active }) => ($active ? "#0063a7" : "#98a2b3")};
-    background: ${({ $active }) =>
-        $active ? "rgba(0, 99, 167, 0.1)" : "transparent"};
-
-    font-size: calc(11px * var(--app-font-scale));
-    line-height: 1.15;
-    font-weight: ${({ $active }) => ($active ? 800 : 550)};
-
-    &:active {
-        transform: scale(0.94);
-    }
-`;
-
 const NotificationsPage: React.FunctionComponent = () => {
     const navigate = useNavigate();
 
@@ -389,54 +256,10 @@ const NotificationsPage: React.FunctionComponent = () => {
     return (
         <PageWrapper id="notifications-page">
             <AppHeader
+                back
                 title="Thông báo"
-                leftSlot={
-                    <>
-                        <HeaderButton
-                            aria-label="Quay lại"
-                            onClick={() =>
-                                navigate("/", { direction: "backward" })
-                            }
-                            type="button"
-                        >
-                            <Icon icon="zi-arrow-left" size={28} />
-                        </HeaderButton>
-
-                        <HeaderButton aria-label="Thông báo" type="button">
-                            <Icon icon="zi-notif" size={27} />
-                        </HeaderButton>
-                    </>
-                }
-                rightSlot={
-                    <HeaderActions>
-                        <HeaderButton
-                            aria-label="Tìm kiếm"
-                            onClick={() => navigate("/search")}
-                            type="button"
-                        >
-                            <Icon icon="zi-search" size={27} />
-                        </HeaderButton>
-
-                        <SegmentedActions>
-                            <SegmentButton
-                                aria-label="Tùy chọn"
-                                type="button"
-                            >
-                                <span />
-                            </SegmentButton>
-
-                            <SegmentButton
-                                aria-label="Đóng"
-                                onClick={() =>
-                                    navigate("/", { direction: "backward" })
-                                }
-                                type="button"
-                            >
-                                <Icon icon="zi-close" size={24} />
-                            </SegmentButton>
-                        </SegmentedActions>
-                    </HeaderActions>
-                }
+                description="Cập nhật thông tin và hoạt động mới nhất tại địa phương"
+                onBack={() => navigate("/", { direction: "backward" })}
             />
             <Content>
                 <Section>
@@ -489,19 +312,7 @@ const NotificationsPage: React.FunctionComponent = () => {
                 <Icon icon="zi-arrow-up" size={28} />
             </FloatingButton>
 
-            <BottomNav>
-                {navItems.map(item => (
-                    <NavButton
-                        key={item.label}
-                        $active={item.active}
-                        onClick={() => navigate(item.path)}
-                        type="button"
-                    >
-                        <Icon icon={item.icon} size={23} />
-                        <span>{item.label}</span>
-                    </NavButton>
-                ))}
-            </BottomNav>
+            <AppBottomNav activeKey="notifications" />
         </PageWrapper>
     );
 };

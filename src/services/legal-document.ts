@@ -1,3 +1,5 @@
+import { apiFetch as fetch } from "./api-client";
+
 export type ApiResponse<T> = {
     success: boolean;
     message: string;
@@ -125,15 +127,14 @@ export async function getLegalDocuments(
         },
     );
 
-    const result =
-        await handleResponse<ApiResponse<LegalDocumentListData>>(response);
+    const result = await handleResponse<ApiResponse<LegalDocumentListData>>(
+        response,
+    );
 
     return result.data.data;
 }
 
-export async function getLegalDocumentById(
-    id: string,
-): Promise<LegalDocument> {
+export async function getLegalDocumentById(id: string): Promise<LegalDocument> {
     const response = await fetch(`${API_BASE_URL}/legal-documents/${id}`, {
         method: "GET",
         headers: getHeaders(),

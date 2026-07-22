@@ -1,6 +1,7 @@
 import AppBottomNav from "@/components/layout/AppBottomNav";
 import AppHeader from "@components/layout/AppHeader";
 import React, { useEffect, useMemo, useState } from "react";
+import { useRateLimitCountdown } from "@/hooks/useRateLimitCountdown";
 import { useParams } from "react-router";
 import styled from "styled-components";
 import { Icon, Page, Spinner, useNavigate } from "zmp-ui";
@@ -494,6 +495,7 @@ const JobDetailPage: React.FC = () => {
 
     const [showApplyForm, setShowApplyForm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const rateLimitRemaining = useRateLimitCountdown();
     const [formMessage, setFormMessage] = useState("");
     const [formError, setFormError] = useState("");
 
@@ -503,6 +505,13 @@ const JobDetailPage: React.FC = () => {
         email: "",
         note: "",
     });
+    let submitText = "Gửi ứng tuyển";
+
+    if (submitting) {
+        submitText = "Đang gửi...";
+    } else if (rateLimitRemaining > 0) {
+        submitText = `Thử lại sau ${rateLimitRemaining}s`;
+    }
 
     const deadlineText = useMemo(() => formatDate(job?.deadline), [job]);
 
@@ -528,7 +537,18 @@ const JobDetailPage: React.FC = () => {
                 setJob(data);
 
                 try {
-                    await recordJobView(id, {});
+                    const interaction = await recordJobView(id, {});
+                    const serverViews =
+                        interaction.viewCount ??
+                        (interaction.views as number | undefined);
+
+                    if (serverViews !== undefined && active) {
+                        setJob(current =>
+                            current
+                                ? { ...current, views: serverViews }
+                                : current,
+                        );
+                    }
                 } catch {
                     // Không chặn hiển thị chi tiết nếu API ghi lượt xem lỗi.
                 }
@@ -572,6 +592,11 @@ const JobDetailPage: React.FC = () => {
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        if (rateLimitRemaining > 0) {
+            setFormError(`Vui lòng thử lại sau ${rateLimitRemaining} giây.`);
+            return;
+        }
 
         if (!id) {
             setFormError("Không tìm thấy mã tin tuyển dụng.");
@@ -796,8 +821,11 @@ const JobDetailPage: React.FC = () => {
                             <FormMessage>{formMessage}</FormMessage>
                         ) : null}
 
-                        <SubmitButton type="submit" disabled={submitting}>
-                            {submitting ? "Đang gửi..." : "Gửi ứng tuyển"}
+                        <SubmitButton
+                            type="submit"
+                            disabled={submitting || rateLimitRemaining > 0}
+                        >
+                            {submitText}
                         </SubmitButton>
                     </FormPanel>
                 </Overlay>

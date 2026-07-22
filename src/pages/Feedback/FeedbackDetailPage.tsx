@@ -7,6 +7,7 @@ import { useParams } from "react-router";
 import styled from "styled-components";
 import { Icon, Page, Spinner, useNavigate } from "zmp-ui";
 import AppBottomNav from "@/components/layout/AppBottomNav";
+import { downloadAttachment } from "@/services/attachments";
 
 function safeFormatDateTime(value?: string | Date | null) {
     if (!value) {
@@ -54,6 +55,50 @@ const ImageContainer = styled.div`
     border-radius: 20px;
     background: #ffffff;
     box-shadow: 0 7px 18px rgba(31, 77, 110, 0.07);
+`;
+
+const AttachmentCard = styled.section`
+    margin-bottom: 12px;
+    padding: 15px;
+    border: 1px solid #deebf3;
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 7px 18px rgba(31, 77, 110, 0.07);
+`;
+
+const AttachmentTitle = styled.h2`
+    margin: 0 0 10px;
+    color: #15344f;
+    font-size: calc(15px * var(--app-font-scale));
+`;
+
+const AttachmentButton = styled.button`
+    width: 100%;
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 12px;
+    border: 1px solid #d8eaf5;
+    border-radius: 13px;
+    color: #075f9e;
+    background: #f5fbff;
+    text-align: left;
+    font-weight: 750;
+
+    & + & {
+        margin-top: 8px;
+    }
+
+    &:disabled {
+        opacity: 0.65;
+    }
+`;
+
+const AttachmentError = styled.p`
+    margin: 9px 0 0;
+    color: #b42318;
+    font-size: calc(12px * var(--app-font-scale));
 `;
 
 const HeroCard = styled.section`
@@ -359,6 +404,33 @@ function getImageUrls(feedback?: FeedbackDetail) {
     return feedback?.images || feedback?.imageUrls || [];
 }
 
+type AttachmentItem = {
+    id: string;
+    name: string;
+};
+
+function getAttachments(feedback?: FeedbackDetail): AttachmentItem[] {
+    const richAttachments = feedback?.attachments || [];
+
+    if (richAttachments.length) {
+        return richAttachments
+            .filter(item => Boolean(item.id))
+            .map(item => ({
+                id: String(item.id),
+                name:
+                    item.originalName ||
+                    item.fileName ||
+                    item.name ||
+                    "Tệp đính kèm",
+            }));
+    }
+
+    return (feedback?.attachmentUrls || []).map((url, index) => ({
+        id: url.split("/").filter(Boolean).pop() || url,
+        name: `Tệp đính kèm ${index + 1}`,
+    }));
+}
+
 function getSenderName(feedback?: FeedbackDetail) {
     return feedback?.senderName || "Chưa cung cấp";
 }
@@ -378,6 +450,8 @@ const FeedbackDetailPage: React.FC = () => {
     const [feedback, setFeedback] = useState<FeedbackDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [attachmentError, setAttachmentError] = useState("");
+    const [downloadingId, setDownloadingId] = useState("");
 
     const loadFeedback = useCallback(async () => {
         if (!id) {
@@ -409,8 +483,31 @@ const FeedbackDetailPage: React.FC = () => {
         void loadFeedback();
     }, [loadFeedback]);
 
-    const imageUrls = useMemo(() => getImageUrls(feedback), [feedback]);
+    const imageUrls = useMemo(
+        () => getImageUrls(feedback || undefined),
+        [feedback],
+    );
+    const attachments = useMemo(
+        () => getAttachments(feedback || undefined),
+        [feedback],
+    );
     const hasResponse = Boolean(feedback?.response);
+
+    const handleDownloadAttachment = async (attachment: AttachmentItem) => {
+        try {
+            setAttachmentError("");
+            setDownloadingId(attachment.id);
+            await downloadAttachment(attachment.id, attachment.name);
+        } catch (downloadError) {
+            setAttachmentError(
+                downloadError instanceof Error
+                    ? downloadError.message
+                    : "Không thể tải tệp đính kèm.",
+            );
+        } finally {
+            setDownloadingId("");
+        }
+    };
 
     return (
         <PageWrapper id="feedback-detail">
@@ -471,6 +568,34 @@ const FeedbackDetailPage: React.FC = () => {
                             <ImageContainer>
                                 <ImageSwiper imageUrls={imageUrls} />
                             </ImageContainer>
+                        )}
+
+                        {attachments.length > 0 && (
+                            <AttachmentCard>
+                                <AttachmentTitle>Tệp đính kèm</AttachmentTitle>
+                                {attachments.map(attachment => (
+                                    <AttachmentButton
+                                        key={attachment.id}
+                                        type="button"
+                                        disabled={
+                                            downloadingId === attachment.id
+                                        }
+                                        onClick={() =>
+                                            handleDownloadAttachment(attachment)
+                                        }
+                                    >
+                                        <Icon icon="zi-download" size={18} />
+                                        {downloadingId === attachment.id
+                                            ? "Đang tải tệp..."
+                                            : attachment.name}
+                                    </AttachmentButton>
+                                ))}
+                                {attachmentError && (
+                                    <AttachmentError>
+                                        {attachmentError}
+                                    </AttachmentError>
+                                )}
+                            </AttachmentCard>
                         )}
 
                         <Card>
@@ -592,7 +717,7 @@ const FeedbackDetailPage: React.FC = () => {
                     </>
                 )}
             </Content>
-                  <AppBottomNav />
+            <AppBottomNav />
         </PageWrapper>
     );
 };

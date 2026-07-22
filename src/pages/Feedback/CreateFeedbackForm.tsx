@@ -1,9 +1,8 @@
 import { Button, ImageUpload, Input, TextArea } from "@/components";
-import { RATE_LIMIT_CODE } from "@/constants";
 import { MAX_FEEDBACK_IMAGES } from "@constants/common";
-import { AppError } from "@dts";
 import { CreateFeedbackParams } from "@/services/services";
 import { useStore } from "@store";
+import { useRateLimitCountdown } from "@/hooks/useRateLimitCountdown";
 import React, { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import styled from "styled-components";
@@ -196,6 +195,7 @@ const CreateFeedbackForm: React.FC<CreateFeedbackFormProps> = ({
     onCancel,
 }) => {
     const [loading, setLoading] = useState(false);
+    const rateLimitRemaining = useRateLimitCountdown();
     const [feedbackTypes, setFeedbackTypes] = useState<FeedbackType[]>([]);
     const [loadingFeedbackTypes, setLoadingFeedbackTypes] = useState(false);
     const [feedbackTypeError, setFeedbackTypeError] = useState("");
@@ -255,6 +255,13 @@ const CreateFeedbackForm: React.FC<CreateFeedbackFormProps> = ({
     });
 
     const isAnonymous = watch("isAnonymous");
+    let submitText = "Gửi phản ánh";
+
+    if (loading) {
+        submitText = "Đang gửi...";
+    } else if (rateLimitRemaining > 0) {
+        submitText = `Thử lại sau ${rateLimitRemaining}s`;
+    }
 
     const getFieldName = (field: string) => {
         switch (field) {
@@ -289,6 +296,15 @@ const CreateFeedbackForm: React.FC<CreateFeedbackFormProps> = ({
     };
 
     const onSubmit = async (data: CreateFeedbackFormValues) => {
+        if (rateLimitRemaining > 0) {
+            setError({
+                message: `Vui lòng thử lại sau ${rateLimitRemaining} giây.`,
+                statusCode: 429,
+                retryAfter: rateLimitRemaining,
+            });
+            return;
+        }
+
         if (!feedbackTypeId) {
             setError({
                 message: "Vui lòng chọn danh mục phản ánh",
@@ -345,13 +361,10 @@ const CreateFeedbackForm: React.FC<CreateFeedbackFormProps> = ({
 
             successCallback?.(true);
         } catch (error) {
-            const { message, code } = (error || {}) as AppError;
-
             setError({
-                code,
                 message:
-                    code === RATE_LIMIT_CODE.code
-                        ? message
+                    error instanceof Error
+                        ? error.message
                         : "Có lỗi xảy ra, vui lòng thử lại sau!",
             });
         } finally {
@@ -634,12 +647,12 @@ const CreateFeedbackForm: React.FC<CreateFeedbackFormProps> = ({
                     </CancelButton>
 
                     <SendButton
-                        disabled={loading}
+                        disabled={loading || rateLimitRemaining > 0}
                         loading={loading}
                         htmlType="submit"
                         suffixIcon={<Icon icon="zi-chevron-right" />}
                     >
-                        {loading ? "Đang gửi..." : "Gửi phản ánh"}
+                        {submitText}
                     </SendButton>
                 </ActionRow>
             </Form>

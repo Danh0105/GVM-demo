@@ -1,3 +1,5 @@
+import { apiFetch as fetch } from "./api-client";
+
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -325,11 +327,7 @@ function normalizePaginatedList<T>(value: unknown): PaginatedResponse<T> {
 function normalizeSingle<T>(value: unknown, dataKey?: string): T {
     const data = unwrapApiResponse<unknown>(value as ApiResponse<unknown>);
 
-    if (
-        typeof data === "object" &&
-        data !== null &&
-        !Array.isArray(data)
-    ) {
+    if (typeof data === "object" && data !== null && !Array.isArray(data)) {
         const body = data as Record<string, unknown>;
 
         if (
@@ -383,15 +381,19 @@ export async function getOcopType(id: string): Promise<OcopType> {
 export async function createOcopType(
     payload: CreateOcopTypePayload,
 ): Promise<OcopType> {
-    const response = await fetch(`${API_BASE_URL}/ocop-types`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify({
-            ...payload,
-            title: payload.title ?? payload.name,
-            name: payload.name ?? payload.title,
-        }),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/ocop-types`,
+        {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify({
+                ...payload,
+                title: payload.title ?? payload.name,
+                name: payload.name ?? payload.title,
+            }),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -402,15 +404,19 @@ export async function updateOcopType(
     id: string,
     payload: UpdateOcopTypePayload,
 ): Promise<OcopType> {
-    const response = await fetch(`${API_BASE_URL}/ocop-types/${id}`, {
-        method: "PATCH",
-        headers: getHeaders(true),
-        body: JSON.stringify({
-            ...payload,
-            title: payload.title ?? payload.name,
-            name: payload.name ?? payload.title,
-        }),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/ocop-types/${id}`,
+        {
+            method: "PATCH",
+            headers: getHeaders(true),
+            body: JSON.stringify({
+                ...payload,
+                title: payload.title ?? payload.name,
+                name: payload.name ?? payload.title,
+            }),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -418,10 +424,14 @@ export async function updateOcopType(
 }
 
 export async function deleteOcopType(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/ocop-types/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/ocop-types/${id}`,
+        {
+            method: "DELETE",
+            headers: getHeaders(),
+        },
+        { auth: true },
+    );
 
     await handleResponse<unknown>(response);
 }
@@ -465,11 +475,15 @@ export async function getOcopById(id: string): Promise<Ocop> {
 }
 
 export async function createOcop(payload: CreateOcopPayload): Promise<Ocop> {
-    const response = await fetch(`${API_BASE_URL}/ocops`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/ocops`,
+        {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -480,11 +494,15 @@ export async function updateOcop(
     id: string,
     payload: UpdateOcopPayload,
 ): Promise<Ocop> {
-    const response = await fetch(`${API_BASE_URL}/ocops/${id}`, {
-        method: "PATCH",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/ocops/${id}`,
+        {
+            method: "PATCH",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -492,10 +510,14 @@ export async function updateOcop(
 }
 
 export async function deleteOcop(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/ocops/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/ocops/${id}`,
+        {
+            method: "DELETE",
+            headers: getHeaders(),
+        },
+        { auth: true },
+    );
 
     await handleResponse<unknown>(response);
 }
@@ -519,11 +541,15 @@ export async function createOcopReview(
     id: string,
     payload: CreateOcopReviewPayload,
 ): Promise<OcopReview> {
-    const response = await fetch(`${API_BASE_URL}/ocops/${id}/reviews`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/ocops/${id}/reviews`,
+        {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 

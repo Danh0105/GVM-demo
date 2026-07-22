@@ -5,7 +5,7 @@ import {
     type PaginatedResponse,
 } from "@/services/feedback";
 import { formatDateTime } from "@utils/date-time";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { Icon, Page, useNavigate } from "zmp-ui";
 import CreateFeedbackForm from "./CreateFeedbackForm";
@@ -563,27 +563,6 @@ const getFeedbackItems = (
     return [];
 };
 
-const matchesSearch = (item: Feedback, keyword: string) => {
-    if (!keyword) {
-        return true;
-    }
-
-    const text = [
-        item.title,
-        item.content,
-        getFeedbackCategory(item),
-        item.senderName,
-        item.phone,
-        item.email,
-        item.address,
-    ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-    return text.includes(keyword.toLowerCase());
-};
-
 const FeedbackPage: React.FC = () => {
     const navigate = useNavigate();
 
@@ -640,10 +619,7 @@ const FeedbackPage: React.FC = () => {
         };
     }, [isCreateOpen]);
 
-    const visibleFeedbacks = useMemo(
-        () => feedbacks.filter(item => matchesSearch(item, keyword.trim())),
-        [feedbacks, keyword],
-    );
+    const visibleFeedbacks = feedbacks;
 
     return (
         <PageWrapper id="feedbacks">

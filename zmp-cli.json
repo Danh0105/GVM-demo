@@ -1,7 +1,7 @@
 {
     "cwd": "/",
     "newProject": true,
-    "name": "Dịch Vụ Công",
+    "name": "Xã Lộc Ninh - Tỉnh Tây Ninh",
     "package": "zmp-ui",
     "framework": "react-typescript",
     "cssPreProcessor": "scss",

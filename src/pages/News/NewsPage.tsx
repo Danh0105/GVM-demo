@@ -82,10 +82,8 @@ const NewsPageWrapper = styled(Page)`
         ),
         linear-gradient(180deg, #eef7ff 0, #f7fbff 238px, #f5f7fb 100%);
     color: #172033;
-    padding: calc(
-            var(--news-header-offset) + var(--news-category-height)
-        )
-        0 calc(28px + var(--zaui-safe-area-inset-bottom, 0px));
+    padding: calc(var(--news-header-offset) + var(--news-category-height)) 0
+        calc(28px + var(--zaui-safe-area-inset-bottom, 0px));
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
         sans-serif;
 
@@ -97,10 +95,7 @@ const NewsPageWrapper = styled(Page)`
 const CategoryBar = styled.div`
     position: fixed;
     top: var(--news-header-offset);
-    right: max(
-        var(--news-scrollbar-gutter),
-        calc((100vw - 430px) / 2)
-    );
+    right: max(var(--news-scrollbar-gutter), calc((100vw - 430px) / 2));
     left: max(0px, calc((100vw - 430px) / 2));
     z-index: 11;
     height: var(--news-category-height);
@@ -168,6 +163,36 @@ const Content = styled.main`
     @media (max-width: 410px) {
         padding-right: 10px;
         padding-left: 10px;
+    }
+`;
+
+const SearchBox = styled.label`
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 0 14px;
+    border: 1px solid #d9e8f3;
+    border-radius: 17px;
+    color: #4985ae;
+    background: #ffffff;
+    box-shadow: 0 6px 16px rgba(30, 90, 130, 0.07);
+`;
+
+const SearchInput = styled.input`
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    outline: 0;
+    color: #173551;
+    background: transparent;
+    font-size: calc(15px * var(--app-font-scale));
+    font-weight: 600;
+
+    &::placeholder {
+        color: #90a8b9;
+        font-weight: 500;
     }
 `;
 
@@ -384,6 +409,8 @@ const NewsPage: React.FunctionComponent = () => {
     const navigate = useNavigate();
 
     const [selectedTypeId, setSelectedTypeId] = useState<string>("");
+    const [keyword, setKeyword] = useState("");
+    const [searchKeyword, setSearchKeyword] = useState("");
     const [articleTypes, setArticleTypes] = useState<ArticleType[]>([]);
     const [articles, setArticles] = useState<ApiArticle[]>([]);
     const [loading, setLoading] = useState(true);
@@ -427,6 +454,14 @@ const NewsPage: React.FunctionComponent = () => {
     }, []);
 
     useEffect(() => {
+        const timer = window.setTimeout(() => {
+            setSearchKeyword(keyword.trim());
+        }, 350);
+
+        return () => window.clearTimeout(timer);
+    }, [keyword]);
+
+    useEffect(() => {
         const loadArticles = async () => {
             setLoading(true);
             setErrorMessage("");
@@ -436,6 +471,7 @@ const NewsPage: React.FunctionComponent = () => {
                     page: 0,
                     size: 10,
                     typeId: selectedTypeId || undefined,
+                    keyword: searchKeyword || undefined,
                 }).catch(error => {
                     console.error("Lỗi lấy tin từ BE:", error);
 
@@ -443,13 +479,14 @@ const NewsPage: React.FunctionComponent = () => {
                 });
                 console.log(backendArticles);
                 // Chỉ lấy tin web ở tab "Tất cả"
-                const webArticles = selectedTypeId
-                    ? []
-                    : await getBaoMoiTayNinhArticles().catch(error => {
-                          console.error("Lỗi lấy tin từ web:", error);
+                const webArticles =
+                    selectedTypeId || searchKeyword
+                        ? []
+                        : await getBaoMoiTayNinhArticles().catch(error => {
+                              console.error("Lỗi lấy tin từ web:", error);
 
-                          return [];
-                      });
+                              return [];
+                          });
 
                 const mixedArticles = selectedTypeId
                     ? backendArticles
@@ -466,7 +503,7 @@ const NewsPage: React.FunctionComponent = () => {
         };
 
         loadArticles();
-    }, [selectedTypeId]);
+    }, [searchKeyword, selectedTypeId]);
 
     const openArticle = async (article: ApiArticle) => {
         if (isWebArticle(article) && article.link) {
@@ -529,6 +566,15 @@ const NewsPage: React.FunctionComponent = () => {
             </CategoryBar>
 
             <Content>
+                <SearchBox>
+                    <Icon icon="zi-search" size={21} />
+                    <SearchInput
+                        value={keyword}
+                        onChange={event => setKeyword(event.target.value)}
+                        placeholder="Tìm tin theo tiêu đề, nội dung..."
+                    />
+                </SearchBox>
+
                 {loading && <StateBox>Đang tải tin tức...</StateBox>}
 
                 {!loading && errorMessage && (

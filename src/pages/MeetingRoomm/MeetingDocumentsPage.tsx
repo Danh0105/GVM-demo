@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
+    downloadMeetingDocument,
     getMeetingDocumentsByMeetingId,
     getMeetings,
+    previewMeetingDocument,
 } from "@/services/meetingRoom";
 import {
     DocumentCard,
@@ -30,8 +32,7 @@ const MeetingDocumentsPage: React.FC = () => {
     const [documents, setDocuments] = useState<MeetingDocument[]>([]);
     const [meetingSearch, setMeetingSearch] = useState("");
     const [documentSearch, setDocumentSearch] = useState("");
-    const [documentFilter, setDocumentFilter] =
-        useState<DocumentFilter>("all");
+    const [documentFilter, setDocumentFilter] = useState<DocumentFilter>("all");
 
     useEffect(() => {
         getMeetings().then(setMeetings);
@@ -144,6 +145,17 @@ const MeetingDocumentsPage: React.FC = () => {
                             <DocumentCard
                                 key={document.id}
                                 document={document}
+                                onPreview={() =>
+                                    previewMeetingDocument(document.id)
+                                }
+                                onDownload={() =>
+                                    downloadMeetingDocument(
+                                        document.id,
+                                        `${
+                                            document.title
+                                        }.${document.fileType.toLowerCase()}`,
+                                    )
+                                }
                             />
                         ))
                     ) : (

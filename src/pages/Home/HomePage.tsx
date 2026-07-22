@@ -24,7 +24,11 @@ import destinations from "@/assets/icons/luggage.png";
 import restaurants from "@/assets/icons/restaurant.png";
 import hotels from "@/assets/icons/hotel.png";
 import transport from "@/assets/icons/moving.png";
-import PHONGHOP from "@assets/phonghop.png";
+import REMOTE_QUEUE from "@/assets/icons/remote-queue.png";
+import PARTY_MEMBER_HANDBOOK from "@/assets/icons/party-member-handbook.png";
+import PARTY_DUES from "@/assets/icons/party-dues.png";
+import DIGITAL_LITERACY from "@/assets/icons/digital-literacy.png";
+import MEETING_ROOM from "@/assets/icons/meeting-room.png";
 
 const TOUR_TAY_NINH_URL =
     "https://www.ivivu.com/du-lich/tour-tay-ninh-1n-vieng-nui-ba-chinh-phuc-cap-treo-van-son-toa-thanh-tay-ninh/2289";
@@ -36,12 +40,17 @@ const PHONG_CHONG_MA_TUY_2026_URL =
     "https://moit.gov.vn/tin-tuc/bo-cong-thuong-ban-hanh-ke-hoach-trien-khai-thang-hanh-dong-phong-chong-ma-tuy-nam-2026.html";
 const NHIEM_VU_VP_HDND_UBND_CAP_XA_URL =
     "https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/89367/tong-hop-nhiem-vu-cua-van-phong-hdnd-va-ubnd-cap-xa-tu-01-7-2025";
+const SO_TAY_DANG_VIEN_URL = "https://sotaydangvien.dcs.vn/auth/login";
+const THU_NOP_DANG_PHI_URL =
+    "https://dichvucong.dcs.vn/web/home?typeInapp=1&zarsrc=260&utm_source=zalo&utm_medium=zalo&utm_campaign=zalo";
+const BINH_DAN_HOC_VU_URL = "https://www.binhdanhocvuso.gov.vn/?typeInapp=1";
 
 type FeatureItem = {
     label: string;
     icon?: React.ComponentProps<typeof Icon>["icon"];
     image?: string;
     path?: string;
+    url?: string;
 };
 
 type Section = {
@@ -84,14 +93,34 @@ const featureSections: Section[] = [
                 path: "/public-services",
             },
             {
+                label: "Lấy số từ xa",
+                image: REMOTE_QUEUE,
+                path: "/remote-queue",
+            },
+            {
                 label: "Phản ánh người dân",
                 image: FEEDBACK,
                 path: "/feedbacks",
             },
             {
                 label: "Phòng họp",
-                image: PHONGHOP,
+                image: MEETING_ROOM,
                 path: "/meeting-rooms",
+            },
+            {
+                label: "Sổ tay đảng viên",
+                image: PARTY_MEMBER_HANDBOOK,
+                url: SO_TAY_DANG_VIEN_URL,
+            },
+            {
+                label: "Thu nộp đảng phí",
+                image: PARTY_DUES,
+                url: THU_NOP_DANG_PHI_URL,
+            },
+            {
+                label: "Bình dân học vụ",
+                image: DIGITAL_LITERACY,
+                url: BINH_DAN_HOC_VU_URL,
             },
         ],
     },
@@ -1485,6 +1514,36 @@ const getAssistantAnswer = (data: any): string => {
 const CHAT_API_BASE_URL = "https://externally-tight-serval.ngrok-free.app";
 const CHAT_ASK_TIMEOUT_MS = 90000;
 const CHAT_STREAM_TIMEOUT_MS = 120000;
+const CHAT_POLL_INTERVAL_MS = 1200;
+const CHAT_POLL_MAX_FAILURES = 3;
+const CHAT_NGROK_BYPASS_HEADER = "ngrok-skip-browser-warning";
+
+const isAbortError = (error: unknown) =>
+    error instanceof Error && error.name === "AbortError";
+
+const waitForChatPoll = (signal: AbortSignal): Promise<void> =>
+    new Promise((resolve, reject) => {
+        if (signal.aborted) {
+            const error = new Error("Aborted");
+            error.name = "AbortError";
+            reject(error);
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            signal.removeEventListener("abort", handleAbort);
+            resolve();
+        }, CHAT_POLL_INTERVAL_MS);
+
+        const handleAbort = () => {
+            window.clearTimeout(timeoutId);
+            const error = new Error("Aborted");
+            error.name = "AbortError";
+            reject(error);
+        };
+
+        signal.addEventListener("abort", handleAbort, { once: true });
+    });
 
 const parseSseEvent = (rawEvent: string): { event: string; data: string } => {
     let eventName = "message";
@@ -1509,6 +1568,78 @@ type StreamChatAnswerParams = {
     onError: (message: string) => void;
 };
 
+const pollChatAnswer = async (
+    params: StreamChatAnswerParams,
+    failureCount = 0,
+): Promise<void> => {
+    const { jobId, signal, onDone, onError } = params;
+    let response: Response;
+
+    try {
+        response = await fetch(`${CHAT_API_BASE_URL}/chat/ask/${jobId}`, {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                [CHAT_NGROK_BYPASS_HEADER]: "true",
+            },
+            signal,
+        });
+    } catch (error) {
+        if (isAbortError(error)) {
+            throw error;
+        }
+
+        if (failureCount + 1 >= CHAT_POLL_MAX_FAILURES) {
+            onError("Không thể nhận kết quả từ trợ lý.");
+            return;
+        }
+
+        await waitForChatPoll(signal);
+        await pollChatAnswer(params, failureCount + 1);
+        return;
+    }
+
+    if (response.status === 404) {
+        const body = await response.json().catch(() => null);
+        onError(body?.message ?? "Yêu cầu không tồn tại hoặc đã hết hạn.");
+        return;
+    }
+
+    if (!response.ok) {
+        if (failureCount + 1 >= CHAT_POLL_MAX_FAILURES) {
+            onError("Không thể nhận kết quả từ trợ lý.");
+            return;
+        }
+
+        await waitForChatPoll(signal);
+        await pollChatAnswer(params, failureCount + 1);
+        return;
+    }
+
+    const data = await response.json().catch(() => null);
+    const status = String(data?.status || "").toLowerCase();
+
+    if (status === "done" || status === "completed" || data?.cached === true) {
+        onDone({
+            answer: getAssistantAnswer(data),
+            sources: getAssistantSources(data),
+        });
+        return;
+    }
+
+    if (status === "error" || status === "failed") {
+        onError(
+            typeof data?.message === "string"
+                ? data.message
+                : "Có lỗi xảy ra khi xử lý câu hỏi.",
+        );
+        return;
+    }
+
+    await waitForChatPoll(signal);
+    await pollChatAnswer(params);
+};
+
 /**
  * Dùng fetch + ReadableStream (thay vì EventSource) để có thể kiểm tra
  * HTTP status (404 khi jobId hết hạn) trước khi parse SSE, và để tránh
@@ -1530,17 +1661,17 @@ const streamChatAnswer = async ({
                 method: "GET",
                 headers: {
                     Accept: "text/event-stream",
-                    "ngrok-skip-browser-warning": "true",
+                    [CHAT_NGROK_BYPASS_HEADER]: "true",
                 },
                 signal,
             },
         );
     } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
+        if (isAbortError(error)) {
             throw error;
         }
 
-        onError("Không thể mở kết nối nhận câu trả lời.");
+        await pollChatAnswer({ jobId, signal, onDelta, onDone, onError });
         return;
     }
 
@@ -1551,7 +1682,7 @@ const streamChatAnswer = async ({
     }
 
     if (!response.ok || !response.body) {
-        onError("Không thể mở kết nối nhận câu trả lời.");
+        await pollChatAnswer({ jobId, signal, onDelta, onDone, onError });
         return;
     }
 
@@ -1559,68 +1690,91 @@ const streamChatAnswer = async ({
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
 
-    try {
-        while (true) {
-            const { value, done } = await reader.read();
+    const processBufferedEvents = () => {
+        let isFinished = false;
+        let separatorMatch = /\r?\n\r?\n/.exec(buffer);
 
-            if (done) {
-                onError("Kết nối bị ngắt trước khi nhận được câu trả lời.");
-                return;
-            }
+        while (separatorMatch?.index !== undefined && !isFinished) {
+            const separatorIndex = separatorMatch.index;
+            const rawEvent = buffer.slice(0, separatorIndex);
+            buffer = buffer.slice(separatorIndex + separatorMatch[0].length);
 
-            buffer += decoder.decode(value, { stream: true });
+            const { event: eventName, data: eventData } =
+                parseSseEvent(rawEvent);
 
-            let separatorIndex = buffer.indexOf("\n\n");
+            if (eventData) {
+                let parsed: any;
 
-            while (separatorIndex !== -1) {
-                const rawEvent = buffer.slice(0, separatorIndex);
-                buffer = buffer.slice(separatorIndex + 2);
-
-                const { event: eventName, data: eventData } =
-                    parseSseEvent(rawEvent);
-
-                if (eventData) {
-                    let parsed: any;
-
-                    try {
-                        parsed = JSON.parse(eventData);
-                    } catch {
-                        parsed = null;
-                    }
-
-                    if (parsed) {
-                        if (
-                            eventName === "chunk" &&
-                            typeof parsed.delta === "string"
-                        ) {
-                            onDelta(parsed.delta);
-                        } else if (eventName === "done") {
-                            onDone({
-                                answer:
-                                    typeof parsed.answer === "string"
-                                        ? parsed.answer
-                                        : "",
-                                sources: Array.isArray(parsed.sources)
-                                    ? parsed.sources
-                                    : [],
-                            });
-                            reader.cancel().catch(() => undefined);
-                            return;
-                        } else if (eventName === "error") {
-                            onError(
-                                typeof parsed.error === "string"
-                                    ? parsed.error
-                                    : "Có lỗi xảy ra khi xử lý câu hỏi.",
-                            );
-                            reader.cancel().catch(() => undefined);
-                            return;
-                        }
-                    }
+                try {
+                    parsed = JSON.parse(eventData);
+                } catch {
+                    parsed = null;
                 }
 
-                separatorIndex = buffer.indexOf("\n\n");
+                if (
+                    eventName === "chunk" &&
+                    typeof parsed?.delta === "string"
+                ) {
+                    onDelta(parsed.delta);
+                } else if (eventName === "done" && parsed) {
+                    onDone({
+                        answer:
+                            typeof parsed.answer === "string"
+                                ? parsed.answer
+                                : "",
+                        sources: Array.isArray(parsed.sources)
+                            ? parsed.sources
+                            : [],
+                    });
+                    reader.cancel().catch(() => undefined);
+                    isFinished = true;
+                } else if (eventName === "error" && parsed) {
+                    onError(
+                        typeof parsed.error === "string"
+                            ? parsed.error
+                            : "Có lỗi xảy ra khi xử lý câu hỏi.",
+                    );
+                    reader.cancel().catch(() => undefined);
+                    isFinished = true;
+                }
             }
+
+            separatorMatch = /\r?\n\r?\n/.exec(buffer);
         }
+
+        return isFinished;
+    };
+
+    const readNextChunk = async (): Promise<boolean> => {
+        const { value, done } = await reader.read();
+
+        if (done) {
+            return false;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+
+        return processBufferedEvents() ? true : readNextChunk();
+    };
+
+    try {
+        const streamCompleted = await readNextChunk();
+
+        if (!streamCompleted) {
+            await pollChatAnswer({
+                jobId,
+                signal,
+                onDelta,
+                onDone,
+                onError,
+            });
+        }
+    } catch (error) {
+        if (isAbortError(error)) {
+            throw error;
+        }
+
+        await pollChatAnswer({ jobId, signal, onDelta, onDone, onError });
     } finally {
         reader.releaseLock();
     }
@@ -1722,7 +1876,7 @@ const HomePage: React.FunctionComponent = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json; charset=utf-8",
-                    "ngrok-skip-browser-warning": "true",
+                    [CHAT_NGROK_BYPASS_HEADER]: "true",
                 },
                 body: JSON.stringify({ question }),
                 signal: askController.signal,
@@ -1820,11 +1974,9 @@ const HomePage: React.FunctionComponent = () => {
                     },
                 });
             } catch (streamError) {
-                const message =
-                    streamError instanceof DOMException &&
-                    streamError.name === "AbortError"
-                        ? "Trợ lý phản hồi quá lâu, vui lòng gửi lại câu hỏi."
-                        : "Có lỗi xảy ra khi nhận câu trả lời.";
+                const message = isAbortError(streamError)
+                    ? "Trợ lý phản hồi quá lâu, vui lòng gửi lại câu hỏi."
+                    : "Có lỗi xảy ra khi nhận câu trả lời.";
 
                 setChatError(message);
                 setMessages(current =>
@@ -1848,7 +2000,7 @@ const HomePage: React.FunctionComponent = () => {
         } catch (error) {
             let message = "Có lỗi xảy ra khi gửi câu hỏi.";
 
-            if (error instanceof DOMException && error.name === "AbortError") {
+            if (isAbortError(error)) {
                 message =
                     "Trợ lý đang khởi động hoặc phản hồi quá lâu, vui lòng gửi lại câu hỏi.";
             } else if (error instanceof Error) {
@@ -1875,6 +2027,15 @@ const HomePage: React.FunctionComponent = () => {
         if (path) {
             navigate(path);
         }
+    };
+
+    const openFeature = (item: FeatureItem) => {
+        if (item.url) {
+            void openWebView(item.url);
+            return;
+        }
+
+        goToPage(item.path);
     };
 
     const toggleSection = (sectionTitle: string) => {
@@ -1927,7 +2088,7 @@ const HomePage: React.FunctionComponent = () => {
                     {visibleItems.map(item => (
                         <FeatureButton
                             key={item.label}
-                            onClick={() => goToPage(item.path)}
+                            onClick={() => openFeature(item)}
                         >
                             <Medallion>
                                 {item.image ? (

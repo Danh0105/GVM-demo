@@ -1,12 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+    ChangeEvent,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import { ChangeHandler } from "react-hook-form";
 import styled from "styled-components";
 import { Box, Icon, ImageViewer } from "zmp-ui";
 import { ImageType } from "zmp-ui/image-viewer";
 
-import { API, BASE_URL, MAX_FEEDBACK_IMAGES } from "@constants/common";
-import { pickImages } from "@/services/zalo";
+import { MAX_FEEDBACK_IMAGES } from "@constants/common";
+import { uploadImages } from "@/services/upload-images";
 import { useStore } from "@store";
+import { useRateLimitCountdown } from "@/hooks/useRateLimitCountdown";
 
 export interface IUploadImageResponse {
     domain: string;
@@ -30,12 +37,6 @@ export interface ImageUploadProps {
     maxSelect?: number;
     maxItemSize?: number;
 }
-
-type PickerError = {
-    code?: number;
-    error?: number;
-    message?: string;
-};
 
 const LabelRow = styled.div`
     display: flex;
@@ -152,46 +153,16 @@ const HelperText = styled.p`
 
 const Container = styled(Box)``;
 
-const getPickerErrorMessage = (error: unknown): string | null => {
-    const pickerError = (error || {}) as PickerError;
-    const code = pickerError.code ?? pickerError.error;
+const HiddenInput = styled.input`
+    display: none;
+`;
 
-    switch (code) {
-        // Người dùng chủ động đóng cửa sổ chọn ảnh.
-        case -2003:
-            return null;
-
-        case -2004:
-            return "Không thể chọn hoặc tải ảnh lên. Vui lòng kiểm tra kết nối mạng và thử lại.";
-
-        case -1403:
-            return "Ứng dụng chưa được cấp quyền chọn ảnh. Vui lòng kiểm tra quyền của Mini App.";
-
-        case -1404:
-            return "Phiên bản Zalo hiện tại chưa hỗ trợ chọn ảnh. Vui lòng cập nhật Zalo.";
-
-        case -1408:
-            return "Quá trình tải ảnh mất quá nhiều thời gian. Vui lòng thử lại.";
-
-        default:
-            return (
-                pickerError.message ||
-                "Chọn hình ảnh thất bại. Vui lòng thử lại với ảnh có dung lượng nhỏ hơn."
-            );
-    }
-};
-
-const getUploadImageUrl = () => {
-    const baseUrl = String(BASE_URL || "")
-        .trim()
-        .replace(/\/+$/, "");
-
-    if (!baseUrl) {
-        throw new Error("Chưa cấu hình VITE_API_BASE_URL trong file .env");
-    }
-
-    return new URL(API.UPLOAD_IMAGE, `${baseUrl}/`).toString();
-};
+const ALLOWED_IMAGE_TYPES = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+]);
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
     onImagesChange,
@@ -201,6 +172,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     onChange,
 }) => {
     const { setError } = useStore();
+    const rateLimitRemaining = useRateLimitCountdown();
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const [imgViewerVisible, setImgViewerVisible] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
@@ -220,33 +193,53 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         [maxItemSize],
     );
 
-    const onClickUpload = async () => {
-        if (isPickingImages || remainingSlots <= 0) {
+    const onSelectFiles = async (event: ChangeEvent<HTMLInputElement>) => {
+        const input = event.currentTarget;
+        const selectedFiles = Array.from(input.files || []).slice(
+            0,
+            remainingSlots,
+        );
+        input.value = "";
+
+        if (!selectedFiles.length) {
+            return;
+        }
+
+        const invalidType = selectedFiles.find(
+            file => !ALLOWED_IMAGE_TYPES.has(file.type.toLowerCase()),
+        );
+        const oversized = selectedFiles.find(file => file.size > maxItemSize);
+
+        if (invalidType) {
+            setError({
+                message: "Chỉ hỗ trợ ảnh JPG, JPEG, PNG, GIF hoặc WEBP.",
+            });
+            return;
+        }
+
+        if (oversized) {
+            setError({
+                message: `Ảnh ${oversized.name} vượt quá ${maxItemSizeInMb}MB.`,
+                statusCode: 413,
+            });
             return;
         }
 
         setIsPickingImages(true);
 
         try {
-            const images = await pickImages({
-                maxItemSize,
-                maxSelectItem: remainingSlots,
-                serverUploadUrl: getUploadImageUrl(),
-                compressLevel: 2,
-            });
+            const images = await uploadImages(selectedFiles);
 
             setImageUrls(currentImages =>
                 [...currentImages, ...images].slice(0, maxSelect),
             );
         } catch (error) {
-            console.error("Lỗi chọn hoặc tải hình ảnh:", error);
-
-            const message = getPickerErrorMessage(error);
-
-            // Không hiển thị lỗi nếu người dùng chủ động đóng hộp chọn ảnh.
-            if (message) {
-                setError({ message });
-            }
+            setError({
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Không thể tải ảnh lên. Vui lòng thử lại.",
+            });
         } finally {
             setIsPickingImages(false);
         }
@@ -271,8 +264,23 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         });
     }, [imageUrls, onChange, onImagesChange]);
 
+    let uploadText = "Thêm ảnh";
+
+    if (isPickingImages) {
+        uploadText = "Đang tải...";
+    } else if (rateLimitRemaining > 0) {
+        uploadText = `Thử lại sau ${rateLimitRemaining}s`;
+    }
+
     return (
         <Container>
+            <HiddenInput
+                ref={inputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp"
+                multiple
+                onChange={onSelectFiles}
+            />
             <LabelRow>
                 <Label>{label}</Label>
 
@@ -283,7 +291,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
             <ImageContainer>
                 {imageUrls.map((image, index) => (
-                    <PreviewContainer key={`${image.name}-${index}`}>
+                    <PreviewContainer key={image.name}>
                         <Image
                             src={image.src}
                             alt={`Ảnh đính kèm ${index + 1}`}
@@ -306,17 +314,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 {remainingSlots > 0 && (
                     <IconUploadContainer
                         type="button"
-                        disabled={isPickingImages}
-                        onClick={onClickUpload}
+                        disabled={isPickingImages || rateLimitRemaining > 0}
+                        onClick={() => inputRef.current?.click()}
                     >
-                        <Icon
-                            icon={isPickingImages ? "zi-loading" : "zi-plus"}
-                            size={22}
-                        />
+                        <Icon icon="zi-plus" size={22} />
 
-                        <UploadText>
-                            {isPickingImages ? "Đang tải..." : "Thêm ảnh"}
-                        </UploadText>
+                        <UploadText>{uploadText}</UploadText>
                     </IconUploadContainer>
                 )}
             </ImageContainer>

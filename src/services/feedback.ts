@@ -1,4 +1,5 @@
 import { FeedbackType } from "@/types";
+import { apiFetch as fetch } from "./api-client";
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
@@ -29,6 +30,17 @@ export type Feedback = {
     email?: string;
     address?: string;
     images?: string[];
+    imageUrls?: string[];
+    attachments?: Array<{
+        id: string;
+        name?: string;
+        fileName?: string;
+        originalName?: string;
+        mimeType?: string;
+        size?: number;
+        url?: string;
+    }>;
+    attachmentUrls?: string[];
     response?: string | null;
     createdAt?: string;
     updatedAt?: string;
@@ -262,14 +274,18 @@ export async function getFeedbackType(id: string): Promise<FeedbackType> {
 export async function createFeedbackType(
     payload: CreateFeedbackTypePayload,
 ): Promise<FeedbackType> {
-    const response = await fetch(`${API_BASE_URL}/feedback-types`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify({
-            ...payload,
-            name: payload.name ?? payload.title,
-        }),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/feedback-types`,
+        {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify({
+                ...payload,
+                name: payload.name ?? payload.title,
+            }),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -280,14 +296,18 @@ export async function updateFeedbackType(
     id: string,
     payload: UpdateFeedbackTypePayload,
 ): Promise<FeedbackType> {
-    const response = await fetch(`${API_BASE_URL}/feedback-types/${id}`, {
-        method: "PATCH",
-        headers: getHeaders(true),
-        body: JSON.stringify({
-            ...payload,
-            name: payload.name ?? payload.title,
-        }),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/feedback-types/${id}`,
+        {
+            method: "PATCH",
+            headers: getHeaders(true),
+            body: JSON.stringify({
+                ...payload,
+                name: payload.name ?? payload.title,
+            }),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -295,10 +315,14 @@ export async function updateFeedbackType(
 }
 
 export async function deleteFeedbackType(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/feedback-types/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/feedback-types/${id}`,
+        {
+            method: "DELETE",
+            headers: getHeaders(),
+        },
+        { auth: true },
+    );
 
     await handleResponse<unknown>(response);
 }
@@ -337,11 +361,15 @@ export async function getFeedback(id: string): Promise<Feedback> {
 export async function createFeedback(
     payload: CreateFeedbackPayload,
 ): Promise<Feedback> {
-    const response = await fetch(`${API_BASE_URL}/feedbacks`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/feedbacks`,
+        {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -352,11 +380,15 @@ export async function updateFeedback(
     id: string,
     payload: UpdateFeedbackPayload,
 ): Promise<Feedback> {
-    const response = await fetch(`${API_BASE_URL}/feedbacks/${id}`, {
-        method: "PATCH",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/feedbacks/${id}`,
+        {
+            method: "PATCH",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -364,10 +396,14 @@ export async function updateFeedback(
 }
 
 export async function deleteFeedback(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/feedbacks/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/feedbacks/${id}`,
+        {
+            method: "DELETE",
+            headers: getHeaders(),
+        },
+        { auth: true },
+    );
 
     await handleResponse<unknown>(response);
 }

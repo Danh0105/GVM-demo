@@ -1,3 +1,5 @@
+import { apiFetch as fetch } from "./api-client";
+
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -94,8 +96,7 @@ export type CreateIndustrialParkPayload = {
     [key: string]: unknown;
 };
 
-export type UpdateIndustrialParkPayload =
-    Partial<CreateIndustrialParkPayload>;
+export type UpdateIndustrialParkPayload = Partial<CreateIndustrialParkPayload>;
 
 function getHeaders(hasJsonBody = false): Record<string, string> {
     const headers: Record<string, string> = {
@@ -236,11 +237,7 @@ function normalizePaginatedList<T>(value: unknown): PaginatedResponse<T> {
 function normalizeSingle<T>(value: unknown, dataKey?: string): T {
     const data = unwrapApiResponse<unknown>(value as ApiResponse<unknown>);
 
-    if (
-        typeof data === "object" &&
-        data !== null &&
-        !Array.isArray(data)
-    ) {
+    if (typeof data === "object" && data !== null && !Array.isArray(data)) {
         const body = data as Record<string, unknown>;
 
         if (
@@ -318,11 +315,15 @@ export async function getIndustrialParkById(
 export async function createIndustrialPark(
     payload: CreateIndustrialParkPayload,
 ): Promise<IndustrialPark> {
-    const response = await fetch(`${API_BASE_URL}/industrial-parks`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/industrial-parks`,
+        {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -333,11 +334,15 @@ export async function updateIndustrialPark(
     id: string | number,
     payload: UpdateIndustrialParkPayload,
 ): Promise<IndustrialPark> {
-    const response = await fetch(`${API_BASE_URL}/industrial-parks/${id}`, {
-        method: "PATCH",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/industrial-parks/${id}`,
+        {
+            method: "PATCH",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -345,10 +350,14 @@ export async function updateIndustrialPark(
 }
 
 export async function deleteIndustrialPark(id: string | number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/industrial-parks/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/industrial-parks/${id}`,
+        {
+            method: "DELETE",
+            headers: getHeaders(),
+        },
+        { auth: true },
+    );
 
     await handleResponse<unknown>(response);
 }

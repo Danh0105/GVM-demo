@@ -1,4 +1,4 @@
-import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
 import {
@@ -9,9 +9,11 @@ import {
     Users,
 } from "lucide-react";
 import {
+    downloadMeetingDocument,
     getMeetingById,
-    getMeetingDocuments,
-    getMeetingMinutes,
+    getMeetingDocumentsByMeetingId,
+    getMeetingMinutesByMeetingId,
+    previewMeetingDocument,
     submitMeetingParticipation,
 } from "@/services/meetingRoom";
 import {
@@ -55,8 +57,8 @@ const MeetingDetailPage: React.FC = () => {
 
         Promise.all([
             getMeetingById(id),
-            getMeetingDocuments(),
-            getMeetingMinutes(),
+            getMeetingDocumentsByMeetingId(id),
+            getMeetingMinutesByMeetingId(id),
         ]).then(([nextMeeting, nextDocuments, nextMinutes]) => {
             if (nextMeeting) {
                 setMeeting(nextMeeting);
@@ -66,24 +68,6 @@ const MeetingDetailPage: React.FC = () => {
             setMinutes(nextMinutes);
         });
     }, [id]);
-
-    const attachedDocuments = useMemo(
-        () =>
-            meeting
-                ? documents.filter(document =>
-                      meeting.documentIds.includes(document.id),
-                  )
-                : [],
-        [documents, meeting],
-    );
-
-    const currentMinutes = useMemo(
-        () =>
-            meeting?.minutesId
-                ? minutes.filter(item => item.id === meeting.minutesId)
-                : [],
-        [meeting, minutes],
-    );
 
     const handleSubmit = (payload: MeetingActionPayload) => {
         if (!meeting) {
@@ -160,16 +144,34 @@ const MeetingDetailPage: React.FC = () => {
 
             <SectionCard title="Tài liệu đính kèm">
                 <InfoStack>
-                    {attachedDocuments.map(document => (
-                        <DocumentCard key={document.id} document={document} />
-                    ))}
+                    {documents.length > 0 ? (
+                        documents.map(document => (
+                            <DocumentCard
+                                key={document.id}
+                                document={document}
+                                onPreview={() =>
+                                    previewMeetingDocument(document.id)
+                                }
+                                onDownload={() =>
+                                    downloadMeetingDocument(
+                                        document.id,
+                                        `${
+                                            document.title
+                                        }.${document.fileType.toLowerCase()}`,
+                                    )
+                                }
+                            />
+                        ))
+                    ) : (
+                        <EmptyState message="Chưa có tài liệu cho cuộc họp này." />
+                    )}
                 </InfoStack>
             </SectionCard>
 
             <SectionCard title="Biên bản">
-                {currentMinutes.length > 0 ? (
+                {minutes.length > 0 ? (
                     <InfoStack>
-                        {currentMinutes.map(minute => (
+                        {minutes.map(minute => (
                             <MinuteCard key={minute.id} minute={minute} />
                         ))}
                     </InfoStack>

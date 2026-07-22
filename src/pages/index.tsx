@@ -42,6 +42,7 @@ import { HotelPage } from "./Hotels";
 import { RestaurantPage } from "./Restaurant";
 import BusinessDetailPage from "./Businesses/BusinessDetailPage";
 import { TransportPage } from "./Transports";
+import { RemoteQueuePage } from "./RemoteQueue";
 import PrivacyPolicyPage from "./Profile/PrivacyPolicyPage";
 import {
     MeetingAttendancePage,
@@ -68,6 +69,7 @@ const Routes: React.FC = () => (
                 element={<LegalDocumentDetailPage />}
             />
             <Route path="/public-services" element={<PublicServicesPage />} />
+            <Route path="/remote-queue" element={<RemoteQueuePage />} />
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/industrial-zones" element={<IndustrialZonesPage />} />

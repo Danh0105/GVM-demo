@@ -175,9 +175,15 @@ export const ShortcutGrid: React.FC<ShortcutGridProps> = ({ shortcuts }) => {
 
 type DocumentCardProps = {
     document: MeetingDocument;
+    onPreview?: () => void;
+    onDownload?: () => void;
 };
 
-export const DocumentCard: React.FC<DocumentCardProps> = ({ document }) => (
+export const DocumentCard: React.FC<DocumentCardProps> = ({
+    document,
+    onPreview,
+    onDownload,
+}) => (
     <ListArticle>
         <FileIcon>{document.fileType}</FileIcon>
         <ItemBody>
@@ -188,10 +194,20 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({ document }) => (
             <SmallMuted>{document.uploadedBy}</SmallMuted>
         </ItemBody>
         <ActionGroup>
-            <IconAction type="button" aria-label="Xem tài liệu">
+            <IconAction
+                type="button"
+                aria-label="Xem tài liệu"
+                onClick={onPreview}
+                disabled={!onPreview}
+            >
                 <Eye size={18} />
             </IconAction>
-            <IconAction type="button" aria-label="Tải xuống">
+            <IconAction
+                type="button"
+                aria-label="Tải xuống"
+                onClick={onDownload}
+                disabled={!onDownload}
+            >
                 <Download size={18} />
             </IconAction>
         </ActionGroup>
@@ -487,8 +503,7 @@ export const StatusPill = styled.span<{ $status: MeetingStatus }>`
 export const AttendancePill = styled.span<{ $status: AttendanceStatus }>`
     border-radius: 999px;
     padding: 5px 10px;
-    color: ${({ $status }) =>
-        $status === "absent" ? "#b42318" : "#005f99"};
+    color: ${({ $status }) => ($status === "absent" ? "#b42318" : "#005f99")};
     background: ${({ $status }) =>
         $status === "absent" ? "#fff1f3" : "#e7f5ff"};
     font-size: calc(12px * var(--app-font-scale));
@@ -554,9 +569,7 @@ const RoundIcon = styled.div<{ $unread?: boolean }>`
     place-items: center;
     color: ${({ $unread }) => ($unread ? "#ffffff" : "#0067a8")};
     background: ${({ $unread }) =>
-        $unread
-            ? "linear-gradient(135deg, #005f99, #008bd2)"
-            : "#e7f5ff"};
+        $unread ? "linear-gradient(135deg, #005f99, #008bd2)" : "#e7f5ff"};
 `;
 
 const ActionGroup = styled.div`
@@ -574,6 +587,11 @@ const IconAction = styled.button`
     place-items: center;
     color: #0067a8;
     background: #eef8ff;
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
+    }
 `;
 
 const UnreadDot = styled.span`

@@ -72,6 +72,9 @@ export type Articles = {
 export type AppError = {
     message?: string;
     code?: number;
+    statusCode?: number;
+    error?: string;
+    retryAfter?: number;
 };
 
 export type Feedback = {
@@ -115,6 +118,7 @@ export type InformationGuide = {
 export type FeedbackType = {
     id: string;
     title: string;
+    name?: string;
     order: number;
     createdAt: string;
     updatedAt: string;

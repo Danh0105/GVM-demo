@@ -1,3 +1,5 @@
+import { apiFetch as fetch } from "./api-client";
+
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -237,11 +239,7 @@ function normalizePaginatedList<T>(value: unknown): PaginatedResponse<T> {
 function normalizeSingle<T>(value: unknown, dataKey?: string): T {
     const data = unwrapApiResponse<unknown>(value as ApiResponse<unknown>);
 
-    if (
-        typeof data === "object" &&
-        data !== null &&
-        !Array.isArray(data)
-    ) {
+    if (typeof data === "object" && data !== null && !Array.isArray(data)) {
         const body = data as Record<string, unknown>;
 
         if (
@@ -273,10 +271,13 @@ function normalizeSingle<T>(value: unknown, dataKey?: string): T {
 export async function getBusinesses(
     query: BusinessQuery = {},
 ): Promise<PaginatedResponse<Business>> {
-    const response = await fetch(`${API_BASE_URL}/businesses${buildQuery(query)}`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/businesses${buildQuery(query)}`,
+        {
+            method: "GET",
+            headers: getHeaders(),
+        },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -291,9 +292,7 @@ export async function getBusinessItems(
     return result.data;
 }
 
-export async function getBusiness(
-    id: string | number,
-): Promise<Business> {
+export async function getBusiness(id: string | number): Promise<Business> {
     const response = await fetch(`${API_BASE_URL}/businesses/${id}`, {
         method: "GET",
         headers: getHeaders(),
@@ -304,20 +303,22 @@ export async function getBusiness(
     return normalizeSingle<Business>(result, "business");
 }
 
-export async function getBusinessById(
-    id: string | number,
-): Promise<Business> {
+export async function getBusinessById(id: string | number): Promise<Business> {
     return getBusiness(id);
 }
 
 export async function createBusiness(
     payload: CreateBusinessPayload,
 ): Promise<Business> {
-    const response = await fetch(`${API_BASE_URL}/businesses`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/businesses`,
+        {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -328,11 +329,15 @@ export async function updateBusiness(
     id: string | number,
     payload: UpdateBusinessPayload,
 ): Promise<Business> {
-    const response = await fetch(`${API_BASE_URL}/businesses/${id}`, {
-        method: "PATCH",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/businesses/${id}`,
+        {
+            method: "PATCH",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -340,10 +345,14 @@ export async function updateBusiness(
 }
 
 export async function deleteBusiness(id: string | number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/businesses/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/businesses/${id}`,
+        {
+            method: "DELETE",
+            headers: getHeaders(),
+        },
+        { auth: true },
+    );
 
     await handleResponse<unknown>(response);
 }

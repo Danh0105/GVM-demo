@@ -7,26 +7,14 @@ import Auth from "./Auth";
 import ErrorNotification from "./notifications/ErrorNotification";
 
 const MyApp = () => {
-    const token = useStore(state => state.token);
-
     const [, getOrganization] = useStore(state => [
         state.organization,
         state.getOrganization,
     ]);
 
-    const getOrg = async () => {
-        try {
-            await getOrganization({ miniAppId: MINI_APP_ID });
-        } catch (err) {
-            console.log(err);
-        }
-    };
-
     useEffect(() => {
-        if (token) {
-            getOrg();
-        }
-    }, [token]);
+        getOrganization({ miniAppId: MINI_APP_ID }).catch(() => undefined);
+    }, [getOrganization]);
 
     return (
         <App>

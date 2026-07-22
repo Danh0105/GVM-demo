@@ -1,3 +1,5 @@
+import { apiFetch as fetch } from "./api-client";
+
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -331,11 +333,7 @@ function normalizeList<T>(value: unknown): T[] {
 function normalizeSingle<T>(value: unknown, dataKey?: string): T {
     const data = unwrapApiResponse<unknown>(value as ApiResponse<unknown>);
 
-    if (
-        typeof data === "object" &&
-        data !== null &&
-        !Array.isArray(data)
-    ) {
+    if (typeof data === "object" && data !== null && !Array.isArray(data)) {
         const body = data as Record<string, unknown>;
 
         if (
@@ -399,11 +397,15 @@ export async function getJobById(id: string | number): Promise<Job> {
 }
 
 export async function createJob(payload: CreateJobPayload): Promise<Job> {
-    const response = await fetch(`${API_BASE_URL}/jobs`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/jobs`,
+        {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -414,11 +416,15 @@ export async function updateJob(
     id: string | number,
     payload: UpdateJobPayload,
 ): Promise<Job> {
-    const response = await fetch(`${API_BASE_URL}/jobs/${id}`, {
-        method: "PATCH",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/jobs/${id}`,
+        {
+            method: "PATCH",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -426,10 +432,14 @@ export async function updateJob(
 }
 
 export async function deleteJob(id: string | number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/jobs/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/jobs/${id}`,
+        {
+            method: "DELETE",
+            headers: getHeaders(),
+        },
+        { auth: true },
+    );
 
     await handleResponse<unknown>(response);
 }
@@ -457,11 +467,15 @@ export async function updateJobLike(
     id: string | number,
     payload: UpdateJobLikePayload,
 ): Promise<JobInteraction> {
-    const response = await fetch(`${API_BASE_URL}/jobs/${id}/like`, {
-        method: "PATCH",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/jobs/${id}/like`,
+        {
+            method: "PATCH",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -471,10 +485,14 @@ export async function updateJobLike(
 export async function getJobInteractions(
     id: string | number,
 ): Promise<JobInteraction[]> {
-    const response = await fetch(`${API_BASE_URL}/jobs/${id}/interactions`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/jobs/${id}/interactions`,
+        {
+            method: "GET",
+            headers: getHeaders(),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -491,6 +509,7 @@ export async function getJobInteractionByUser(
             method: "GET",
             headers: getHeaders(),
         },
+        { auth: true },
     );
 
     const result = await handleResponse<unknown>(response);
@@ -505,10 +524,14 @@ export async function getJobInteractionByUser(
 export async function getJobApplications(
     id: string | number,
 ): Promise<JobApplication[]> {
-    const response = await fetch(`${API_BASE_URL}/jobs/${id}/applications`, {
-        method: "GET",
-        headers: getHeaders(),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/jobs/${id}/applications`,
+        {
+            method: "GET",
+            headers: getHeaders(),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 
@@ -519,11 +542,15 @@ export async function createJobApplication(
     id: string | number,
     payload: CreateJobApplicationPayload,
 ): Promise<JobApplication> {
-    const response = await fetch(`${API_BASE_URL}/jobs/${id}/applications`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+        `${API_BASE_URL}/jobs/${id}/applications`,
+        {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify(payload),
+        },
+        { auth: true },
+    );
 
     const result = await handleResponse<unknown>(response);
 

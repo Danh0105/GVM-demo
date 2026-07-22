@@ -6,6 +6,7 @@ import {
     getWorkSchedule,
 } from "@/services/services.mock";
 import { OrganizationSlice } from "./organizationSlice";
+import { AuthSlice } from "./authSlice";
 
 export interface ScheduleSlice {
     gettingSchedule?: boolean;
@@ -18,7 +19,7 @@ export interface ScheduleSlice {
 }
 
 const scheduleSlice: StateCreator<
-    ScheduleSlice & OrganizationSlice,
+    ScheduleSlice & OrganizationSlice & AuthSlice,
     [],
     [],
     ScheduleSlice
@@ -57,6 +58,12 @@ const scheduleSlice: StateCreator<
         params: Omit<CreateWorkScheduleParams, "organizationId">,
     ) => {
         try {
+            await get().getAccessToken();
+
+            if (!get().token) {
+                throw new Error("Không thể xác thực bằng Zalo.");
+            }
+
             const organizationId = get().organization?.id;
 
             set(state => ({

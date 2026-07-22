@@ -9,9 +9,14 @@ import { openMediaPicker } from "zmp-sdk/apis";
 import { User } from "@dts";
 import { ImageType } from "zmp-ui/image-viewer";
 
-export const getZaloUserInfo = async (): Promise<User> => {
+export const getZaloUserInfo = async (
+    requestPermission = false,
+): Promise<User> => {
     try {
-        const user = await getUserInfo({ avatarType: "normal" });
+        const user = await getUserInfo({
+            avatarType: "normal",
+            autoRequestPermission: requestPermission,
+        });
         const { userInfo } = user;
 
         return Promise.resolve(userInfo);
@@ -22,9 +27,11 @@ export const getZaloUserInfo = async (): Promise<User> => {
 
 export const getToken = async (): Promise<string> => {
     try {
-        // Chỉ dùng ACCESS_TOKEN giả khi chạy development.
-        // Xóa fallback này trước khi deploy production.
-        const token = (await getAccessToken({})) || "ACCESS_TOKEN";
+        const token = await getAccessToken({});
+
+        if (!token || typeof token !== "string") {
+            throw new Error("Zalo SDK không trả về access token hợp lệ.");
+        }
 
         return Promise.resolve(token);
     } catch (error) {

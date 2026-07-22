@@ -78,7 +78,8 @@ export const getArticles = async (
         });
         const data = await request<GetArticlesResponse>("GET", url, {
             page,
-            pargeSize: limit,
+            size: limit,
+            organizationId,
         });
         const articles: Articles = {
             articles: data.data?.map(item => ({
@@ -121,19 +122,11 @@ export const getFeedbacks = async (
             limit = TOTAL_FEEDBACKS_PER_PAGE,
             page = 0,
         } = params;
-        const data = await request<GetFeedbacksResponse>(
-            "GET",
-            API.FEEDBACK,
-            {
-                page,
-                pargeSize: limit,
-            },
-            {
-                customHeader: {
-                    "x-organization-id": organizationId,
-                },
-            },
-        );
+        const data = await request<GetFeedbacksResponse>("GET", API.FEEDBACK, {
+            page,
+            size: limit,
+            organizationId,
+        });
         const feedbacks: Feedbacks = {
             feedbacks: data.data?.map(item => ({
                 id: item.id,
@@ -190,12 +183,7 @@ export const getFeedbackTypes = async (params: GetFeedbackTypeParams) => {
         const feedbackTypes = await request<FeedbackType[]>(
             "GET",
             API.FEEDBACK_TYPES,
-            {},
-            {
-                customHeader: {
-                    "x-organization-id": organizationId,
-                },
-            },
+            { organizationId },
         );
         return feedbackTypes;
     } catch (error) {
@@ -235,11 +223,15 @@ export const createFeedback = async (
     organizationId: string,
 ): Promise<boolean> => {
     try {
-        const data = await request<boolean>("POST", API.FEEDBACK, feedback, {
-            customHeader: {
-                "x-organization-id": organizationId,
+        const data = await request<boolean>(
+            "POST",
+            API.FEEDBACK,
+            {
+                ...feedback,
+                organizationId,
             },
-        });
+            { useAuth: true },
+        );
         return data;
     } catch (error) {
         throw error;
@@ -272,12 +264,8 @@ export const getInformationGuides = async (
             API.INFORMATION_GUIDE,
             {
                 page,
-                pargeSize: limit,
-            },
-            {
-                customHeader: {
-                    "x-organization-id": organizationId,
-                },
+                size: limit,
+                organizationId,
             },
         );
         const informationGuides: InformationGuides = {
@@ -318,12 +306,8 @@ export const getWorkSchedule = async (
         const data = await request<GetWorkScheduleResponse>(
             "GET",
             API.GET_SCHEDULE,
-            {},
-            {
-                customHeader: {
-                    "x-organization-id": organizationId,
-                },
-            },
+            { organizationId },
+            { useAuth: true },
         );
         if (!data) {
             return null;
@@ -375,13 +359,10 @@ export const createWorkSchedule = async (
             API.CREATE_SCHEDULE,
             {
                 ...rest,
+                organizationId,
                 date: formatDate(rest.date, "mm-dd-yyyy"),
             },
-            {
-                customHeader: {
-                    "x-organization-id": organizationId,
-                },
-            },
+            { useAuth: true },
         );
 
         if (!data) {
@@ -419,11 +400,7 @@ export const searchProfiles = async (
             "GET",
             API.SEARCH_PROFILES,
             params,
-            {
-                customHeader: {
-                    "x-organization-id": params.organizationId,
-                },
-            },
+            { useAuth: true },
         );
         return result;
     } catch (err) {
