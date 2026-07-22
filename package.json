@@ -50,6 +50,7 @@
         "clsx": "^1.2.1",
         "date-fns": "^2.30.0",
         "lodash.debounce": "^4.0.8",
+        "lucide-react": "^1.25.0",
         "prop-types": "^15.8.1",
         "react": "^18.2.0",
         "react-datepicker": "^4.11.0",
