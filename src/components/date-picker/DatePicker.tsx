@@ -76,7 +76,7 @@ const DatePickerWrapperStyles = createGlobalStyle`
 		}
 `;
 
-const DatePicker: FC<ReactDatePickerProps> = forwardRef(props => {
+const DatePicker: FC<ReactDatePickerProps> = forwardRef((props, ref) => {
     const renderCustomHeader = (
         headerProps: ReactDatePickerCustomHeaderProps,
     ) => {
@@ -118,6 +118,7 @@ const DatePicker: FC<ReactDatePickerProps> = forwardRef(props => {
         <>
             <DatePickerWrapperStyles />
             <ReactDatePicker
+                ref={ref}
                 customInput="calender"
                 locale="vi"
                 renderCustomHeader={renderCustomHeader}

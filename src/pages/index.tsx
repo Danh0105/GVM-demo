@@ -43,6 +43,15 @@ import { RestaurantPage } from "./Restaurant";
 import BusinessDetailPage from "./Businesses/BusinessDetailPage";
 import { TransportPage } from "./Transports";
 import PrivacyPolicyPage from "./Profile/PrivacyPolicyPage";
+import {
+    MeetingAttendancePage,
+    MeetingDetailPage,
+    MeetingDocumentsPage,
+    MeetingMinutesPage,
+    MeetingNotificationsPage,
+    MeetingRoomHomePage,
+    MeetingSchedulePage,
+} from "./MeetingRoomm";
 
 const Routes: React.FC = () => (
     <ZMPRouter>
@@ -105,6 +114,28 @@ const Routes: React.FC = () => (
             <Route path="/transport" element={<TransportPage />} />
             <Route path="/restaurants" element={<RestaurantPage />} />
             <Route path="/events" element={<EventsPage />} />
+            <Route path="/meeting-rooms" element={<MeetingRoomHomePage />} />
+            <Route
+                path="/meeting-rooms/schedule"
+                element={<MeetingSchedulePage />}
+            />
+            <Route
+                path="/meeting-rooms/documents"
+                element={<MeetingDocumentsPage />}
+            />
+            <Route
+                path="/meeting-rooms/minutes"
+                element={<MeetingMinutesPage />}
+            />
+            <Route
+                path="/meeting-rooms/attendance"
+                element={<MeetingAttendancePage />}
+            />
+            <Route
+                path="/meeting-rooms/notifications"
+                element={<MeetingNotificationsPage />}
+            />
+            <Route path="/meeting-rooms/:id" element={<MeetingDetailPage />} />
         </AnimationRoutes>
     </ZMPRouter>
 );
