@@ -24,6 +24,7 @@ import destinations from "@/assets/icons/luggage.png";
 import restaurants from "@/assets/icons/restaurant.png";
 import hotels from "@/assets/icons/hotel.png";
 import transport from "@/assets/icons/moving.png";
+import PHONGHOP from "@assets/phonghop.png";
 
 const TOUR_TAY_NINH_URL =
     "https://www.ivivu.com/du-lich/tour-tay-ninh-1n-vieng-nui-ba-chinh-phuc-cap-treo-van-son-toa-thanh-tay-ninh/2289";
@@ -86,6 +87,11 @@ const featureSections: Section[] = [
                 label: "Phản ánh người dân",
                 image: FEEDBACK,
                 path: "/feedbacks",
+            },
+            {
+                label: "Phòng họp",
+                image: PHONGHOP,
+                path: "/meeting-rooms",
             },
         ],
     },
