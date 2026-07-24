@@ -2,7 +2,7 @@
     "name": "government-services",
     "private": true,
     "version": "1.0.0",
-    "description": "Xã Lộc Ninh - Tỉnh Tây Ninh",
+    "description": "Phường Gò Dầu - Tỉnh Tây Ninh",
     "repository": "",
     "license": "UNLICENSED",
     "browserslist": [
@@ -60,6 +60,7 @@
         "react-markdown": "^10.1.0",
         "react-router": "^6.14.1",
         "react-router-dom": "^6.8.2",
+        "socket.io-client": "^4.8.3",
         "styled-components": "^5.3.8",
         "twin.macro": "^3.3.1",
         "vite-plugin-babel": "^1.1.3",

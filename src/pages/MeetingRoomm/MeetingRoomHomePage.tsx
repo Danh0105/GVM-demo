@@ -78,7 +78,7 @@ const MeetingRoomHomePage: React.FC = () => {
 
     return (
         <MeetingLayout
-            title="Phòng họp"
+            title="Cuộc họp"
             description="Quản lý lịch họp, tài liệu và thông báo nội bộ"
         >
             {user && (

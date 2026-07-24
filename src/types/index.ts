@@ -11,11 +11,33 @@ export type Address = {
     city: string;
 };
 
+export type SystemRole =
+    | "USER"
+    | "ADMIN"
+    | "WARD_CHAIRMAN"
+    | "NEIGHBORHOOD_HEAD";
+
 export type User = {
     id: string;
     name: string;
+    fullName?: string;
+    username?: string;
+    zalo_id?: string;
+    zaloId?: string;
     avatar: string;
+    email?: string;
+    phone?: string;
+    title?: string;
+    position?: string;
     idByOA?: string;
+    role?: SystemRole;
+    systemRole?: SystemRole;
+    businessRole?: string;
+    department?: string | { id?: string; name?: string; title?: string };
+    departmentName?: string;
+    status?: string;
+    lastLoginAt?: string;
+    createdAt?: string;
 };
 
 export type OA = {

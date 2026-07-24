@@ -84,9 +84,17 @@ const authSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set, get) => ({
                 return;
             }
 
-            const user = await getZaloUserInfo();
+            const zaloUser = await getZaloUserInfo();
 
-            set(state => ({ ...state, user }));
+            set(state => ({
+                ...state,
+                user: {
+                    ...zaloUser,
+                    ...state.user,
+                    name: state.user?.name || zaloUser.name,
+                    avatar: state.user?.avatar || zaloUser.avatar,
+                },
+            }));
         } catch {
             set(state => ({ ...state, user: undefined }));
         } finally {

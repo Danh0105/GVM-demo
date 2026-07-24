@@ -1,39 +1,278 @@
-import React, { FC, useEffect } from "react";
-import PageLayout from "@components/layout/PageLayout";
+import React, { FC, useEffect, useMemo, useState } from "react";
+import styled from "styled-components";
+import { CalendarDays } from "lucide-react";
+import { Page, useNavigate, useSnackbar } from "zmp-ui";
+import AppHeader from "@/components/layout/AppHeader";
 import { useStore } from "@store";
-import { useNavigate } from "zmp-ui";
 import { CreateScheduleForm } from "./CreateScheduleForm";
 
-const CreateScheduleAppointmentPage: FC<any> = () => {
+type ScheduleTab = "create" | "history";
+
+const formatScheduleDate = (date?: Date) =>
+    date
+        ? new Intl.DateTimeFormat("vi-VN", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+          }).format(date)
+        : "-";
+
+const getStatusLabel = (status?: string) => {
+    if (status === "approved") {
+        return "Đã xác nhận";
+    }
+
+    if (status === "rejected") {
+        return "Đã từ chối";
+    }
+
+    return "Chờ xác nhận";
+};
+
+const CreateScheduleAppointmentPage: FC = () => {
     const navigate = useNavigate();
-    const getSchedule = useStore(state => state.getSchedule);
-    const [schedule, gettingSchedule] = useStore(state => [
-        state.schedule,
-        state.gettingSchedule,
-    ]);
+    const { openSnackbar } = useSnackbar();
+    const [activeTab, setActiveTab] = useState<ScheduleTab>("create");
+    const [wasCreating, setWasCreating] = useState(false);
+    const [schedule, gettingSchedule, creatingSchedule, getSchedule] = useStore(
+        state => [
+            state.schedule,
+            state.gettingSchedule,
+            state.creatingSchedule,
+            state.getSchedule,
+        ],
+    );
 
     useEffect(() => {
         getSchedule();
     }, []);
 
     useEffect(() => {
-        if (!gettingSchedule && schedule) {
-            navigate("/schedule-appointment-result", {
-                replace: true,
-                animate: false,
+        if (creatingSchedule) {
+            setWasCreating(true);
+            return;
+        }
+
+        if (wasCreating && schedule) {
+            setActiveTab("history");
+            setWasCreating(false);
+            openSnackbar({
+                type: "success",
+                text: "Gửi lịch hẹn thành công.",
             });
         }
+    }, [creatingSchedule, openSnackbar, schedule, wasCreating]);
+
+    const historyDescription = useMemo(() => {
+        if (gettingSchedule) {
+            return "Đang tải lịch hẹn...";
+        }
+
+        if (!schedule) {
+            return "Chưa có lịch hẹn nào.";
+        }
+
+        return `${formatScheduleDate(schedule.date)} · ${getStatusLabel(
+            schedule.status,
+        )}`;
     }, [gettingSchedule, schedule]);
 
-    if (!gettingSchedule && schedule) {
-        return null;
-    }
-
     return (
-        <PageLayout title="Đặt lịch làm việc">
-            <CreateScheduleForm />
-        </PageLayout>
+        <StyledPage>
+            <AppHeader
+                back
+                title="Đặt lịch hẹn"
+                description="Phường Gò Dầu - Tỉnh Tây Ninh"
+                onBack={() => navigate("/", { direction: "backward" })}
+            />
+
+            <Tabs role="tablist" aria-label="Đặt lịch hẹn">
+                <TabButton
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === "create"}
+                    $active={activeTab === "create"}
+                    onClick={() => setActiveTab("create")}
+                >
+                    Đặt lịch
+                </TabButton>
+                <TabButton
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === "history"}
+                    $active={activeTab === "history"}
+                    onClick={() => setActiveTab("history")}
+                >
+                    Lịch sử
+                </TabButton>
+            </Tabs>
+
+            {activeTab === "create" ? (
+                <CreateScheduleForm />
+            ) : (
+                <HistoryPanel>
+                    <HistoryIcon>
+                        <CalendarDays size={28} />
+                    </HistoryIcon>
+                    <HistoryTitle>Lịch hẹn gần nhất</HistoryTitle>
+                    <HistoryDescription>{historyDescription}</HistoryDescription>
+                    {schedule && (
+                        <HistoryCard>
+                            <HistoryRow>
+                                <span>Họ và tên</span>
+                                <strong>{schedule.fullName}</strong>
+                            </HistoryRow>
+                            <HistoryRow>
+                                <span>Số điện thoại</span>
+                                <strong>{schedule.phoneNumber}</strong>
+                            </HistoryRow>
+                            <HistoryRow>
+                                <span>Ngày hẹn</span>
+                                <strong>{formatScheduleDate(schedule.date)}</strong>
+                            </HistoryRow>
+                            <HistoryRow>
+                                <span>Trạng thái</span>
+                                <StatusPill>{getStatusLabel(schedule.status)}</StatusPill>
+                            </HistoryRow>
+                            <HistoryContent>{schedule.content}</HistoryContent>
+                        </HistoryCard>
+                    )}
+                    {!schedule && (
+                        <GhostButton
+                            type="button"
+                            onClick={() => setActiveTab("create")}
+                        >
+                            Tạo lịch hẹn mới
+                        </GhostButton>
+                    )}
+                </HistoryPanel>
+            )}
+        </StyledPage>
     );
 };
 
 export default CreateScheduleAppointmentPage;
+
+const StyledPage = styled(Page)`
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    padding: 112px 0 120px;
+    color: #172033;
+    background: linear-gradient(180deg, #eef7ff 0, #f8fbff 260px, #f5f7fb 100%);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+`;
+
+const Tabs = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    margin: 0 16px 14px;
+    padding: 5px;
+    border: 1px solid rgba(0, 104, 173, 0.12);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 12px 28px rgba(31, 58, 84, 0.1);
+`;
+
+const TabButton = styled.button<{ $active?: boolean }>`
+    min-height: 50px;
+    border: 0;
+    border-radius: 14px;
+    color: ${({ $active }) => ($active ? "#ffffff" : "#526071")};
+    background: ${({ $active }) =>
+        $active ? "linear-gradient(180deg, #0077c8 0%, #005f9f 100%)" : "transparent"};
+    box-shadow: ${({ $active }) =>
+        $active ? "0 8px 18px rgba(0, 104, 173, 0.24)" : "none"};
+    font-size: calc(15px * var(--app-font-scale));
+    font-weight: 950;
+`;
+
+const HistoryPanel = styled.section`
+    margin: 0 16px;
+    padding: 26px 16px;
+    border: 1px solid rgba(20, 62, 92, 0.08);
+    border-radius: 22px;
+    background: #ffffff;
+    box-shadow: 0 14px 34px rgba(31, 58, 84, 0.08);
+    text-align: center;
+`;
+
+const HistoryIcon = styled.div`
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 14px;
+    display: grid;
+    place-items: center;
+    border-radius: 20px;
+    color: #0068ad;
+    background: #e8f5ff;
+`;
+
+const HistoryTitle = styled.h2`
+    margin: 0;
+    color: #172033;
+    font-size: calc(18px * var(--app-font-scale));
+    font-weight: 950;
+`;
+
+const HistoryDescription = styled.p`
+    margin: 8px 0 0;
+    color: #667085;
+    font-size: calc(13px * var(--app-font-scale));
+    font-weight: 700;
+`;
+
+const HistoryCard = styled.div`
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 18px;
+    background: #f7fbff;
+    text-align: left;
+`;
+
+const HistoryRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    color: #667085;
+    font-size: calc(13px * var(--app-font-scale));
+    font-weight: 700;
+
+    strong {
+        color: #172033;
+        text-align: right;
+        font-weight: 900;
+    }
+`;
+
+const StatusPill = styled.strong`
+    padding: 6px 9px;
+    border-radius: 999px;
+    color: #087354;
+    background: #e4f9f0;
+`;
+
+const HistoryContent = styled.div`
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #e4edf5;
+    color: #344054;
+    font-size: calc(13px * var(--app-font-scale));
+    line-height: 1.5;
+    white-space: pre-line;
+`;
+
+const GhostButton = styled.button`
+    min-height: 44px;
+    margin-top: 18px;
+    padding: 0 18px;
+    border: 1px solid #d0e8f8;
+    border-radius: 999px;
+    color: #0068ad;
+    background: #f5fbff;
+    font-weight: 900;
+`;

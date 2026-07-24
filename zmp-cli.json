@@ -1,7 +1,7 @@
 {
     "cwd": "/",
     "newProject": true,
-    "name": "Xã Lộc Ninh - Tỉnh Tây Ninh",
+    "name": "Phường Gò Dầu - Tỉnh Tây Ninh",
     "package": "zmp-ui",
     "framework": "react-typescript",
     "cssPreProcessor": "scss",

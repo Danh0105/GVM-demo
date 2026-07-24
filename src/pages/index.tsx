@@ -1,6 +1,8 @@
 import React from "react";
 import { Route } from "react-router-dom";
 import { AnimationRoutes, ZMPRouter } from "zmp-ui";
+import RequireRole from "@/components/common/RequireRole";
+import { SYSTEM_ROLES } from "@/utils/permissions";
 
 import {
     FeedbackPage,
@@ -43,6 +45,7 @@ import { RestaurantPage } from "./Restaurant";
 import BusinessDetailPage from "./Businesses/BusinessDetailPage";
 import { TransportPage } from "./Transports";
 import { RemoteQueuePage } from "./RemoteQueue";
+import { SatisfactionRatingPage } from "./SatisfactionRating";
 import PrivacyPolicyPage from "./Profile/PrivacyPolicyPage";
 import {
     MeetingAttendancePage,
@@ -53,6 +56,22 @@ import {
     MeetingRoomHomePage,
     MeetingSchedulePage,
 } from "./MeetingRoomm";
+import {
+    CreateAssignedTaskPage,
+    TaskAssignmentPage,
+} from "./TaskAssignment";
+import { ReceivedTasksPage } from "./ReceivedTasks";
+import { WardTaskDetailPage } from "./WardTasks";
+import { UserManagementPage } from "./UserManagement";
+
+const meetingRoles = [
+    SYSTEM_ROLES.WARD_CHAIRMAN,
+    SYSTEM_ROLES.NEIGHBORHOOD_HEAD,
+];
+
+const withRoles = (element: React.ReactNode, roles: typeof meetingRoles) => (
+    <RequireRole roles={roles}>{element}</RequireRole>
+);
 
 const Routes: React.FC = () => (
     <ZMPRouter>
@@ -98,6 +117,10 @@ const Routes: React.FC = () => (
                 element={<AppointmentScheduleResultPage />}
             />
             <Route
+                path="/satisfaction-rating"
+                element={<SatisfactionRatingPage />}
+            />
+            <Route
                 path="/information-guide"
                 element={<InformationGuidePage />}
             />
@@ -116,28 +139,42 @@ const Routes: React.FC = () => (
             <Route path="/transport" element={<TransportPage />} />
             <Route path="/restaurants" element={<RestaurantPage />} />
             <Route path="/events" element={<EventsPage />} />
-            <Route path="/meeting-rooms" element={<MeetingRoomHomePage />} />
+            <Route
+                path="/meeting-rooms"
+                element={withRoles(<MeetingRoomHomePage />, meetingRoles)}
+            />
             <Route
                 path="/meeting-rooms/schedule"
-                element={<MeetingSchedulePage />}
+                element={withRoles(<MeetingSchedulePage />, meetingRoles)}
             />
             <Route
                 path="/meeting-rooms/documents"
-                element={<MeetingDocumentsPage />}
+                element={withRoles(<MeetingDocumentsPage />, meetingRoles)}
             />
             <Route
                 path="/meeting-rooms/minutes"
-                element={<MeetingMinutesPage />}
+                element={withRoles(<MeetingMinutesPage />, meetingRoles)}
             />
             <Route
                 path="/meeting-rooms/attendance"
-                element={<MeetingAttendancePage />}
+                element={withRoles(<MeetingAttendancePage />, meetingRoles)}
             />
             <Route
                 path="/meeting-rooms/notifications"
-                element={<MeetingNotificationsPage />}
+                element={withRoles(<MeetingNotificationsPage />, meetingRoles)}
             />
-            <Route path="/meeting-rooms/:id" element={<MeetingDetailPage />} />
+            <Route
+                path="/meeting-rooms/:id"
+                element={withRoles(<MeetingDetailPage />, meetingRoles)}
+            />
+            <Route path="/users" element={<UserManagementPage />} />
+            <Route path="/task-assignments" element={<TaskAssignmentPage />} />
+            <Route
+                path="/task-assignments/create"
+                element={<CreateAssignedTaskPage />}
+            />
+            <Route path="/received-tasks" element={<ReceivedTasksPage />} />
+            <Route path="/ward-tasks/:id" element={<WardTaskDetailPage />} />
         </AnimationRoutes>
     </ZMPRouter>
 );

@@ -5,6 +5,7 @@ import React, { useEffect } from "react";
 import { App, SnackbarProvider } from "zmp-ui";
 import Auth from "./Auth";
 import ErrorNotification from "./notifications/ErrorNotification";
+import TaskNotificationListener from "./notifications/TaskNotificationListener";
 
 const MyApp = () => {
     const [, getOrganization] = useStore(state => [
@@ -20,6 +21,7 @@ const MyApp = () => {
         <App>
             <SnackbarProvider>
                 <ErrorNotification />
+                <TaskNotificationListener />
                 <Auth />
                 <Routes />
             </SnackbarProvider>
