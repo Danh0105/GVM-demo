@@ -75,7 +75,7 @@ const scheduleSlice: StateCreator<
             set(state => ({
                 ...state,
                 error: {
-                    message: "Không thể gửi lịch hẹn, vui lòng thử lại sau!",
+                    message: "Không thể gửi yêu cầu hẹn, vui lòng thử lại sau!",
                 },
             }));
         } finally {

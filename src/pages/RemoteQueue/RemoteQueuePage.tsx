@@ -115,7 +115,7 @@ const getFriendlyRemoteQueueError = (error: unknown) => {
 
     return error instanceof Error
         ? error.message
-        : "Không thể tải dữ liệu lấy số từ xa.";
+        : "Không thể tải dữ liệu lấy số trực tuyến.";
 };
 
 const canCancelTicket = (ticket?: RemoteQueueTicket | null) =>
@@ -1027,7 +1027,7 @@ const RemoteQueuePage: React.FC = () => {
         <StyledPage>
             <AppHeader
                 back
-                title="Lấy số từ xa"
+                title="Lấy số trực tuyến"
                 description="Trung tâm HCC Phường Gò Dầu"
                 onBack={() => navigate("/", { direction: "backward" })}
                 rightSlot={
@@ -1037,7 +1037,7 @@ const RemoteQueuePage: React.FC = () => {
                 }
             />
 
-            <MainTabs role="tablist" aria-label="Chức năng lấy số từ xa">
+            <MainTabs role="tablist" aria-label="Chức năng lấy số trực tuyến">
                 <MainTabButton
                     type="button"
                     role="tab"
