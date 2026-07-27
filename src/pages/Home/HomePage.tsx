@@ -100,12 +100,12 @@ const featureSections: Section[] = [
                 path: "/public-services",
             },
             {
-                label: "Lấy số từ xa",
+                label: "Lấy số trực tuyến",
                 image: REMOTE_QUEUE,
                 path: "/remote-queue",
             },
             {
-                label: "Đặt lịch hẹn",
+                label: "Hẹn làm việc",
                 image: APPOINTMENT_SCHEDULE,
                 path: "/create-schedule-appointment",
             },

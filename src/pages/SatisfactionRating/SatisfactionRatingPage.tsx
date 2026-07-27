@@ -25,8 +25,8 @@ const ratingOptions: Array<{
 
 const services = [
     "Dịch vụ hành chính công",
-    "Lấy số từ xa",
-    "Đặt lịch hẹn",
+    "Lấy số trực tuyến",
+    "Hẹn làm việc",
     "Tiếp nhận phản ánh",
     "Khác",
 ];

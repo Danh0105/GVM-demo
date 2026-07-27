@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useState } from "react";
+import React, { FC, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { CalendarDays } from "lucide-react";
 import { Page, useNavigate, useSnackbar } from "zmp-ui";
@@ -32,20 +32,51 @@ const getStatusLabel = (status?: string) => {
 const CreateScheduleAppointmentPage: FC = () => {
     const navigate = useNavigate();
     const { openSnackbar } = useSnackbar();
+    const openSnackbarRef = useRef(openSnackbar);
     const [activeTab, setActiveTab] = useState<ScheduleTab>("create");
     const [wasCreating, setWasCreating] = useState(false);
-    const [schedule, gettingSchedule, creatingSchedule, getSchedule] = useStore(
-        state => [
+    const [
+        schedule,
+        gettingSchedule,
+        creatingSchedule,
+        getSchedule,
+        getAccessToken,
+        token,
+    ] = useStore(state => [
             state.schedule,
             state.gettingSchedule,
             state.creatingSchedule,
             state.getSchedule,
-        ],
-    );
+            state.getAccessToken,
+            state.token,
+        ]);
 
     useEffect(() => {
-        getSchedule();
-    }, []);
+        openSnackbarRef.current = openSnackbar;
+    }, [openSnackbar]);
+
+    useEffect(() => {
+        if (token) {
+            getSchedule();
+            return;
+        }
+
+        getAccessToken()
+            .then(() => {
+                if (useStore.getState().token) {
+                    getSchedule();
+                }
+            })
+            .catch(error =>
+                openSnackbarRef.current({
+                    type: "error",
+                    text:
+                        error instanceof Error
+                            ? error.message
+                            : "Không thể xác thực tài khoản Zalo.",
+                }),
+            );
+    }, [getAccessToken, getSchedule, token]);
 
     useEffect(() => {
         if (creatingSchedule) {
@@ -56,20 +87,20 @@ const CreateScheduleAppointmentPage: FC = () => {
         if (wasCreating && schedule) {
             setActiveTab("history");
             setWasCreating(false);
-            openSnackbar({
+            openSnackbarRef.current({
                 type: "success",
-                text: "Gửi lịch hẹn thành công.",
+                text: "Gửi yêu cầu hẹn thành công.",
             });
         }
-    }, [creatingSchedule, openSnackbar, schedule, wasCreating]);
+    }, [creatingSchedule, schedule, wasCreating]);
 
     const historyDescription = useMemo(() => {
         if (gettingSchedule) {
-            return "Đang tải lịch hẹn...";
+            return "Đang tải yêu cầu hẹn...";
         }
 
         if (!schedule) {
-            return "Chưa có lịch hẹn nào.";
+            return "Chưa có yêu cầu hẹn nào.";
         }
 
         return `${formatScheduleDate(schedule.date)} · ${getStatusLabel(
@@ -81,12 +112,12 @@ const CreateScheduleAppointmentPage: FC = () => {
         <StyledPage>
             <AppHeader
                 back
-                title="Đặt lịch hẹn"
+                title="Hẹn làm việc"
                 description="Phường Gò Dầu - Tỉnh Tây Ninh"
                 onBack={() => navigate("/", { direction: "backward" })}
             />
 
-            <Tabs role="tablist" aria-label="Đặt lịch hẹn">
+            <Tabs role="tablist" aria-label="Hẹn làm việc">
                 <TabButton
                     type="button"
                     role="tab"
@@ -94,7 +125,7 @@ const CreateScheduleAppointmentPage: FC = () => {
                     $active={activeTab === "create"}
                     onClick={() => setActiveTab("create")}
                 >
-                    Đặt lịch
+                    Hẹn làm việc
                 </TabButton>
                 <TabButton
                     type="button"
@@ -108,13 +139,13 @@ const CreateScheduleAppointmentPage: FC = () => {
             </Tabs>
 
             {activeTab === "create" ? (
-                <CreateScheduleForm />
+                <CreateScheduleForm authReady={Boolean(token)} />
             ) : (
                 <HistoryPanel>
                     <HistoryIcon>
                         <CalendarDays size={28} />
                     </HistoryIcon>
-                    <HistoryTitle>Lịch hẹn gần nhất</HistoryTitle>
+                    <HistoryTitle>Yêu cầu hẹn gần nhất</HistoryTitle>
                     <HistoryDescription>{historyDescription}</HistoryDescription>
                     {schedule && (
                         <HistoryCard>
@@ -142,7 +173,7 @@ const CreateScheduleAppointmentPage: FC = () => {
                             type="button"
                             onClick={() => setActiveTab("create")}
                         >
-                            Tạo lịch hẹn mới
+                            Tạo yêu cầu hẹn mới
                         </GhostButton>
                     )}
                 </HistoryPanel>

@@ -102,6 +102,12 @@ const authSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set, get) => ({
         }
     },
     getAccessToken: () => {
+        const { token, expiresAt } = get();
+
+        if (token && (!expiresAt || expiresAt > Date.now() + 60_000)) {
+            return Promise.resolve();
+        }
+
         if (activeZaloLogin) {
             return activeZaloLogin;
         }
@@ -115,8 +121,8 @@ const authSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set, get) => ({
                     authMessage: undefined,
                     authRetryUntil: undefined,
                 }));
-                const zaloAccessToken = await getToken();
                 const zaloUser = await getZaloUserInfo(true);
+                const zaloAccessToken = await getToken();
                 const zaloId = normalizeZaloLoginValue(zaloUser.id);
                 const username = normalizeZaloLoginValue(zaloUser.name);
 
