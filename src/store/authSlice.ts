@@ -84,9 +84,17 @@ const authSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set, get) => ({
                 return;
             }
 
-            const user = await getZaloUserInfo();
+            const zaloUser = await getZaloUserInfo();
 
-            set(state => ({ ...state, user }));
+            set(state => ({
+                ...state,
+                user: {
+                    ...zaloUser,
+                    ...state.user,
+                    name: state.user?.name || zaloUser.name,
+                    avatar: state.user?.avatar || zaloUser.avatar,
+                },
+            }));
         } catch {
             set(state => ({ ...state, user: undefined }));
         } finally {
@@ -94,6 +102,12 @@ const authSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set, get) => ({
         }
     },
     getAccessToken: () => {
+        const { token, expiresAt } = get();
+
+        if (token && (!expiresAt || expiresAt > Date.now() + 60_000)) {
+            return Promise.resolve();
+        }
+
         if (activeZaloLogin) {
             return activeZaloLogin;
         }
@@ -107,8 +121,8 @@ const authSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set, get) => ({
                     authMessage: undefined,
                     authRetryUntil: undefined,
                 }));
-                const zaloAccessToken = await getToken();
                 const zaloUser = await getZaloUserInfo(true);
+                const zaloAccessToken = await getToken();
                 const zaloId = normalizeZaloLoginValue(zaloUser.id);
                 const username = normalizeZaloLoginValue(zaloUser.name);
 

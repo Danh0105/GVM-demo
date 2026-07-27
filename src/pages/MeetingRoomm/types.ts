@@ -6,13 +6,18 @@ export type MeetingStatus =
     | "completed"
     | "cancelled";
 
-export type ParticipationStatus = "pending" | "accepted" | "declined" | "delegated";
+export type ParticipationStatus =
+    | "pending"
+    | "accepted"
+    | "declined"
+    | "delegated";
 
-export type AttendanceStatus = "checked-in" | "absent" | "delegated";
+export type AttendanceStatus = "checked-in" | "absent" | "excused";
 
 export type DocumentType = "PDF" | "DOCX" | "XLSX" | "PPTX";
 
 export type UserInfo = {
+    id?: string;
     fullName: string;
     position: string;
     department: string;
@@ -38,6 +43,8 @@ export type MeetingDocument = {
     meetingTitle?: string;
     category: string;
     fileUrl: string;
+    previewUrl?: string;
+    downloadUrl?: string;
 };
 
 export type MeetingMinute = {

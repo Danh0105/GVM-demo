@@ -17,7 +17,7 @@ const attendanceFilters: Array<{ label: string; value: AttendanceFilter }> = [
     { label: "Tất cả", value: "all" },
     { label: "Đã điểm danh", value: "checked-in" },
     { label: "Vắng mặt", value: "absent" },
-    { label: "Được chuyển", value: "delegated" },
+    { label: "Vắng có lý do", value: "excused" },
 ];
 
 const MeetingAttendancePage: React.FC = () => {

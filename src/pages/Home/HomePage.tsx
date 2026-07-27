@@ -1,10 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { Icon, Page, useNavigate } from "zmp-ui";
 import Background from "@assets/background.png";
 import HeaderBackground from "@assets/header-background.png";
 import ReactMarkdown from "react-markdown";
 import { openWebView } from "@/services/zalo";
+import {
+    askChatbotStream,
+    ChatbotMetadata,
+    ChatbotSource,
+} from "@/services/chatbot";
 import TOUR_TAY_NINH from "@/assets/tnbd.png";
 import QK from "@/assets/QK.png";
 import WC from "@/assets/WC.png";
@@ -29,6 +34,10 @@ import PARTY_MEMBER_HANDBOOK from "@/assets/icons/party-member-handbook.png";
 import PARTY_DUES from "@/assets/icons/party-dues.png";
 import DIGITAL_LITERACY from "@/assets/icons/digital-literacy.png";
 import MEETING_ROOM from "@/assets/icons/meeting-room.png";
+import APPOINTMENT_SCHEDULE from "@/assets/icons/appointment-schedule.svg";
+import SATISFACTION_RATING from "@/assets/icons/satisfaction-rating.svg";
+import { useStore } from "@store";
+import { getSystemRole, SYSTEM_ROLES } from "@/utils/permissions";
 
 const TOUR_TAY_NINH_URL =
     "https://www.ivivu.com/du-lich/tour-tay-ninh-1n-vieng-nui-ba-chinh-phuc-cap-treo-van-son-toa-thanh-tay-ninh/2289";
@@ -51,6 +60,7 @@ type FeatureItem = {
     image?: string;
     path?: string;
     url?: string;
+    roles?: string[];
 };
 
 type Section = {
@@ -64,20 +74,17 @@ type NavItem = FeatureItem & {
     path?: string;
 };
 
-type ChatSource = {
-    id?: string;
-    title?: string;
-    label?: string;
-    url?: string;
-    updatedAt?: string;
-};
-
 type ChatMessage = {
-    id: number;
+    id: string;
     role: "assistant" | "user";
     content: string;
-    sources?: ChatSource[];
-    showSourceNotice?: boolean;
+    status?: "pending" | "streaming" | "completed" | "error" | "stopped";
+    source?: ChatbotSource | null;
+    cached?: boolean | null;
+    knowledgeId?: string | null;
+    model?: string | null;
+    errorMessage?: string;
+    question?: string;
 };
 
 const featureSections: Section[] = [
@@ -93,9 +100,19 @@ const featureSections: Section[] = [
                 path: "/public-services",
             },
             {
-                label: "Lấy số từ xa",
+                label: "Lấy số trực tuyến",
                 image: REMOTE_QUEUE,
                 path: "/remote-queue",
+            },
+            {
+                label: "Hẹn làm việc",
+                image: APPOINTMENT_SCHEDULE,
+                path: "/create-schedule-appointment",
+            },
+            {
+                label: "Đánh giá hài lòng",
+                image: SATISFACTION_RATING,
+                path: "/satisfaction-rating",
             },
             {
                 label: "Phản ánh người dân",
@@ -103,9 +120,32 @@ const featureSections: Section[] = [
                 path: "/feedbacks",
             },
             {
-                label: "Phòng họp",
+                label: "Cuộc họp",
                 image: MEETING_ROOM,
                 path: "/meeting-rooms",
+                roles: [
+                    SYSTEM_ROLES.USER,
+                    SYSTEM_ROLES.WARD_CHAIRMAN,
+                    SYSTEM_ROLES.NEIGHBORHOOD_HEAD,
+                ],
+            },
+            {
+                label: "Giao việc",
+                image: BUISSENESS,
+                path: "/task-assignments",
+                roles: [SYSTEM_ROLES.WARD_CHAIRMAN],
+            },
+            {
+                label: "Nhận việc",
+                image: DOCUMENTS,
+                path: "/received-tasks",
+                roles: [SYSTEM_ROLES.NEIGHBORHOOD_HEAD],
+            },
+            {
+                label: "Quản lý người dùng",
+                image: BUISSENESS,
+                path: "/users",
+                roles: [SYSTEM_ROLES.ADMIN],
             },
             {
                 label: "Sổ tay đảng viên",
@@ -191,7 +231,7 @@ const featureSections: Section[] = [
 ];
 
 /* const galleryItems = [
-    { title: "Ảnh đẹp Thiệu Hóa", count: "19 ảnh", image: Background },
+                                    Hỏi đáp thủ tục hành chính
     { title: "Ẩm thực địa phương", count: "9 ảnh", image: Thumb },
     { title: "Sản vật quê hương", count: "8 ảnh", image: SocialInsurance },
 ]; */
@@ -228,6 +268,14 @@ const policyItems = [
 ];
 
 const DEFAULT_VISIBLE_FEATURE_COUNT = 4;
+
+const getTaskBadgeLabel = (count: number) => {
+    if (count > 99) {
+        return "99+";
+    }
+
+    return String(count);
+};
 
 const StyledPage = styled(Page)`
     min-height: 100vh;
@@ -605,6 +653,7 @@ const FeatureGrid = styled.div`
 `;
 
 const FeatureButton = styled.button`
+    position: relative;
     min-width: 0;
     padding: 2px 2px 12px;
 
@@ -656,6 +705,25 @@ const FeatureIconImage = styled.img`
     display: block;
     object-fit: contain;
     filter: drop-shadow(0 4px 7px rgba(0, 86, 153, 0.18));
+`;
+const TaskBadge = styled.span`
+    position: absolute;
+    top: -4px;
+    right: calc(50% - 34px);
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background: #d92d20;
+    font-size: calc(10px * var(--app-font-scale));
+    line-height: 1;
+    font-weight: 900;
+    box-shadow: 0 3px 8px rgba(217, 45, 32, 0.28);
 `;
 const FeatureLabel = styled.span`
     min-height: 32px;
@@ -1149,6 +1217,7 @@ const ChatBubble = styled.div<{ $role: ChatMessage["role"] }>`
     line-height: 1.55;
     font-weight: 500;
     overflow-wrap: anywhere;
+    word-break: break-word;
 
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 
@@ -1173,19 +1242,152 @@ const ChatBubble = styled.div<{ $role: ChatMessage["role"] }>`
     li {
         margin: 4px 0;
     }
+
+    a {
+        color: ${({ $role }) => ($role === "user" ? "#ffffff" : "#0063a7")};
+        font-weight: 800;
+        text-decoration: underline;
+    }
+
+    table {
+        width: 100%;
+        display: block;
+        overflow-x: auto;
+        border-collapse: collapse;
+        font-size: calc(12px * var(--app-font-scale));
+    }
+
+    th,
+    td {
+        padding: 6px 8px;
+        border: 1px solid #d0d5dd;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    code {
+        white-space: pre-wrap;
+    }
 `;
-const SourceNotice = styled.div`
+
+const AssistantMeta = styled.div`
+    width: fit-content;
+    margin-bottom: 6px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    color: #0063a7;
+    background: #eaf6ff;
+    font-size: calc(10px * var(--app-font-scale));
+    line-height: 1;
+    font-weight: 850;
+`;
+
+const StreamingContent = styled.div`
+    position: relative;
+`;
+
+const TypingCursor = styled.span`
+    display: inline-block;
+    width: 7px;
+    height: 17px;
+    margin-left: 3px;
+    border-radius: 999px;
+    background: #0063a7;
+    vertical-align: text-bottom;
+    animation: chat-cursor-blink 900ms steps(2, start) infinite;
+
+    @keyframes chat-cursor-blink {
+        50% {
+            opacity: 0;
+        }
+    }
+`;
+
+const TypingDots = styled.div`
+    min-width: 52px;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    span {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #98a2b3;
+        animation: chat-dot-bounce 900ms ease-in-out infinite;
+    }
+
+    span:nth-child(2) {
+        animation-delay: 120ms;
+    }
+
+    span:nth-child(3) {
+        animation-delay: 240ms;
+    }
+
+    @keyframes chat-dot-bounce {
+        0%,
+        80%,
+        100% {
+            transform: translateY(0);
+            opacity: 0.45;
+        }
+
+        40% {
+            transform: translateY(-4px);
+            opacity: 1;
+        }
+    }
+`;
+
+const MessageError = styled.div`
     margin-top: 8px;
-    padding: 8px 10px;
-
-    border-radius: 12px;
-    background: #f8fafc;
-    color: #98a2b3;
-
+    color: #b42318;
     font-size: calc(12px * var(--app-font-scale));
-    line-height: 1.4;
-    font-weight: 500;
+    line-height: 1.35;
+    font-weight: 700;
 `;
+
+const MessageActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+`;
+
+const MessageActionButton = styled.button`
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid #d0e8f8;
+    border-radius: 999px;
+    color: #0063a7;
+    background: #f5fbff;
+    font-size: calc(12px * var(--app-font-scale));
+    font-weight: 800;
+
+    &:disabled {
+        opacity: 0.55;
+    }
+`;
+
+const NewMessagesButton = styled.button`
+    position: absolute;
+    left: 50%;
+    bottom: 86px;
+    transform: translateX(-50%);
+    z-index: 2;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid #d0e8f8;
+    border-radius: 999px;
+    color: #0063a7;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+    font-size: calc(12px * var(--app-font-scale));
+    font-weight: 900;
+`;
+
 const ChatError = styled.div`
     margin: 0 14px 10px;
 
@@ -1231,7 +1433,7 @@ const ChatInput = styled.textarea`
     }
 `;
 
-const ChatSendButton = styled.button`
+const ChatSendButton = styled.button<{ $stopping?: boolean }>`
     width: 44px;
     height: 44px;
 
@@ -1242,7 +1444,10 @@ const ChatSendButton = styled.button`
     place-items: center;
 
     color: #ffffff;
-    background: linear-gradient(135deg, #005b9f, #008bd2);
+    background: ${({ $stopping }) =>
+        $stopping
+            ? "linear-gradient(135deg, #b42318, #f04438)"
+            : "linear-gradient(135deg, #005b9f, #008bd2)"};
 
     &:disabled {
         opacity: 0.55;
@@ -1251,6 +1456,17 @@ const ChatSendButton = styled.button`
     &:active:not(:disabled) {
         transform: scale(0.94);
     }
+`;
+
+const StopGenerationButton = styled.button`
+    min-height: 34px;
+    margin: 0 12px 10px;
+    border: 1px solid #fecaca;
+    border-radius: 999px;
+    color: #b42318;
+    background: #fff7f7;
+    font-size: calc(12px * var(--app-font-scale));
+    font-weight: 850;
 `;
 
 const BottomNav = styled.nav`
@@ -1435,375 +1651,78 @@ const ICON_SIZE = {
     floating: 25,
 } as const;
 
-const getAssistantSources = (data: any): ChatSource[] => {
-    const possibleSources =
-        data?.sources ??
-        data?.data?.sources ??
-        data?.data?.source ??
-        data?.source;
-
-    if (Array.isArray(possibleSources)) {
-        return possibleSources;
-    }
-
-    return [];
-};
-
-const hasSourceField = (data: any): boolean => {
-    return (
-        Array.isArray(data?.sources) ||
-        Array.isArray(data?.data?.sources) ||
-        Array.isArray(data?.data?.source) ||
-        Array.isArray(data?.source)
-    );
-};
-
-const removeJsonCodeFence = (value: string): string => {
-    return value
-        .trim()
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/i, "")
-        .replace(/```$/i, "")
-        .trim();
-};
-
-const tryParseJsonAnswer = (value: string): string | null => {
-    const cleanedValue = removeJsonCodeFence(value);
-
-    try {
-        const parsed = JSON.parse(cleanedValue);
-
-        if (typeof parsed?.answer === "string") {
-            return parsed.answer;
-        }
-
-        if (typeof parsed?.data?.answer === "string") {
-            return parsed.data.answer;
-        }
-
-        if (typeof parsed?.message === "string") {
-            return parsed.message;
-        }
-
-        return null;
-    } catch {
-        return null;
-    }
-};
-
-const getAssistantAnswer = (data: any): string => {
-    if (typeof data === "string") {
-        return tryParseJsonAnswer(data) ?? data;
-    }
-
-    const possibleAnswer =
-        data?.answer ??
-        data?.data?.answer ??
-        data?.data?.message ??
-        data?.message ??
-        data?.result ??
-        data?.content;
-
-    if (typeof possibleAnswer === "string") {
-        return tryParseJsonAnswer(possibleAnswer) ?? possibleAnswer;
-    }
-
-    return "Xin lỗi, tôi chưa nhận được nội dung trả lời phù hợp.";
-};
-
-const CHAT_API_BASE_URL = "https://externally-tight-serval.ngrok-free.app";
 const CHAT_ASK_TIMEOUT_MS = 90000;
-const CHAT_STREAM_TIMEOUT_MS = 120000;
-const CHAT_POLL_INTERVAL_MS = 1200;
-const CHAT_POLL_MAX_FAILURES = 3;
-const CHAT_NGROK_BYPASS_HEADER = "ngrok-skip-browser-warning";
+const MAX_CHAT_QUESTION_LENGTH = 2000;
 
 const isAbortError = (error: unknown) =>
     error instanceof Error && error.name === "AbortError";
 
-const waitForChatPoll = (signal: AbortSignal): Promise<void> =>
-    new Promise((resolve, reject) => {
-        if (signal.aborted) {
-            const error = new Error("Aborted");
-            error.name = "AbortError";
-            reject(error);
-            return;
-        }
+const getAssistantSourceLabel = (message: ChatMessage) => {
+    const source = String(message.source || "").trim().toLowerCase();
 
-        const timeoutId = window.setTimeout(() => {
-            signal.removeEventListener("abort", handleAbort);
-            resolve();
-        }, CHAT_POLL_INTERVAL_MS);
-
-        const handleAbort = () => {
-            window.clearTimeout(timeoutId);
-            const error = new Error("Aborted");
-            error.name = "AbortError";
-            reject(error);
-        };
-
-        signal.addEventListener("abort", handleAbort, { once: true });
-    });
-
-const parseSseEvent = (rawEvent: string): { event: string; data: string } => {
-    let eventName = "message";
-    const dataLines: string[] = [];
-
-    rawEvent.split("\n").forEach(line => {
-        if (line.startsWith("event:")) {
-            eventName = line.slice(6).trim();
-        } else if (line.startsWith("data:")) {
-            dataLines.push(line.slice(5).trim());
-        }
-    });
-
-    return { event: eventName, data: dataLines.join("\n") };
-};
-
-type StreamChatAnswerParams = {
-    jobId: string;
-    signal: AbortSignal;
-    onDelta: (delta: string) => void;
-    onDone: (payload: { answer: string; sources: ChatSource[] }) => void;
-    onError: (message: string) => void;
-};
-
-const pollChatAnswer = async (
-    params: StreamChatAnswerParams,
-    failureCount = 0,
-): Promise<void> => {
-    const { jobId, signal, onDone, onError } = params;
-    let response: Response;
-
-    try {
-        response = await fetch(`${CHAT_API_BASE_URL}/chat/ask/${jobId}`, {
-            method: "GET",
-            headers: {
-                Accept: "application/json",
-                [CHAT_NGROK_BYPASS_HEADER]: "true",
-            },
-            signal,
-        });
-    } catch (error) {
-        if (isAbortError(error)) {
-            throw error;
-        }
-
-        if (failureCount + 1 >= CHAT_POLL_MAX_FAILURES) {
-            onError("Không thể nhận kết quả từ trợ lý.");
-            return;
-        }
-
-        await waitForChatPoll(signal);
-        await pollChatAnswer(params, failureCount + 1);
-        return;
+    if (
+        message.cached === true ||
+        ["database", "db", "cache", "cached", "saved", "history"].includes(
+            source,
+        )
+    ) {
+        return "Dữ liệu đã lưu";
     }
 
-    if (response.status === 404) {
-        const body = await response.json().catch(() => null);
-        onError(body?.message ?? "Yêu cầu không tồn tại hoặc đã hết hạn.");
-        return;
-    }
-
-    if (!response.ok) {
-        if (failureCount + 1 >= CHAT_POLL_MAX_FAILURES) {
-            onError("Không thể nhận kết quả từ trợ lý.");
-            return;
-        }
-
-        await waitForChatPoll(signal);
-        await pollChatAnswer(params, failureCount + 1);
-        return;
-    }
-
-    const data = await response.json().catch(() => null);
-    const status = String(data?.status || "").toLowerCase();
-
-    if (status === "done" || status === "completed" || data?.cached === true) {
-        onDone({
-            answer: getAssistantAnswer(data),
-            sources: getAssistantSources(data),
-        });
-        return;
-    }
-
-    if (status === "error" || status === "failed") {
-        onError(
-            typeof data?.message === "string"
-                ? data.message
-                : "Có lỗi xảy ra khi xử lý câu hỏi.",
-        );
-        return;
-    }
-
-    await waitForChatPoll(signal);
-    await pollChatAnswer(params);
-};
-
-/**
- * Dùng fetch + ReadableStream (thay vì EventSource) để có thể kiểm tra
- * HTTP status (404 khi jobId hết hạn) trước khi parse SSE, và để tránh
- * hành vi tự động retry vô hạn của EventSource khi kết nối lỗi.
- */
-const streamChatAnswer = async ({
-    jobId,
-    signal,
-    onDelta,
-    onDone,
-    onError,
-}: StreamChatAnswerParams): Promise<void> => {
-    let response: Response;
-
-    try {
-        response = await fetch(
-            `${CHAT_API_BASE_URL}/chat/ask/${jobId}/stream`,
-            {
-                method: "GET",
-                headers: {
-                    Accept: "text/event-stream",
-                    [CHAT_NGROK_BYPASS_HEADER]: "true",
-                },
-                signal,
-            },
-        );
-    } catch (error) {
-        if (isAbortError(error)) {
-            throw error;
-        }
-
-        await pollChatAnswer({ jobId, signal, onDelta, onDone, onError });
-        return;
-    }
-
-    if (response.status === 404) {
-        const body = await response.json().catch(() => null);
-        onError(body?.message ?? "Yêu cầu không tồn tại hoặc đã hết hạn.");
-        return;
-    }
-
-    if (!response.ok || !response.body) {
-        await pollChatAnswer({ jobId, signal, onDelta, onDone, onError });
-        return;
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let buffer = "";
-
-    const processBufferedEvents = () => {
-        let isFinished = false;
-        let separatorMatch = /\r?\n\r?\n/.exec(buffer);
-
-        while (separatorMatch?.index !== undefined && !isFinished) {
-            const separatorIndex = separatorMatch.index;
-            const rawEvent = buffer.slice(0, separatorIndex);
-            buffer = buffer.slice(separatorIndex + separatorMatch[0].length);
-
-            const { event: eventName, data: eventData } =
-                parseSseEvent(rawEvent);
-
-            if (eventData) {
-                let parsed: any;
-
-                try {
-                    parsed = JSON.parse(eventData);
-                } catch {
-                    parsed = null;
-                }
-
-                if (
-                    eventName === "chunk" &&
-                    typeof parsed?.delta === "string"
-                ) {
-                    onDelta(parsed.delta);
-                } else if (eventName === "done" && parsed) {
-                    onDone({
-                        answer:
-                            typeof parsed.answer === "string"
-                                ? parsed.answer
-                                : "",
-                        sources: Array.isArray(parsed.sources)
-                            ? parsed.sources
-                            : [],
-                    });
-                    reader.cancel().catch(() => undefined);
-                    isFinished = true;
-                } else if (eventName === "error" && parsed) {
-                    onError(
-                        typeof parsed.error === "string"
-                            ? parsed.error
-                            : "Có lỗi xảy ra khi xử lý câu hỏi.",
-                    );
-                    reader.cancel().catch(() => undefined);
-                    isFinished = true;
-                }
-            }
-
-            separatorMatch = /\r?\n\r?\n/.exec(buffer);
-        }
-
-        return isFinished;
-    };
-
-    const readNextChunk = async (): Promise<boolean> => {
-        const { value, done } = await reader.read();
-
-        if (done) {
-            return false;
-        }
-
-        buffer += decoder.decode(value, { stream: true });
-
-        return processBufferedEvents() ? true : readNextChunk();
-    };
-
-    try {
-        const streamCompleted = await readNextChunk();
-
-        if (!streamCompleted) {
-            await pollChatAnswer({
-                jobId,
-                signal,
-                onDelta,
-                onDone,
-                onError,
-            });
-        }
-    } catch (error) {
-        if (isAbortError(error)) {
-            throw error;
-        }
-
-        await pollChatAnswer({ jobId, signal, onDelta, onDone, onError });
-    } finally {
-        reader.releaseLock();
-    }
+    return "AI";
 };
 
 const HomePage: React.FunctionComponent = () => {
     const navigate = useNavigate();
+    const user = useStore(state => state.user);
+    const unreadTaskNotifications = useStore(
+        state => state.unreadTaskNotifications,
+    );
+    const role = getSystemRole(user);
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatInput, setChatInput] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [chatError, setChatError] = useState("");
+    const [copiedMessageId, setCopiedMessageId] = useState<string>();
+    const [hasUnreadChatMessages, setHasUnreadChatMessages] = useState(false);
     const [isCompanyLogoExpanded, setIsCompanyLogoExpanded] = useState(false);
     const [expandedSections, setExpandedSections] = useState<
         Record<string, boolean>
     >({});
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
-            id: Date.now(),
+            id: String(Date.now()),
             role: "assistant",
             content:
                 "Xin chào, tôi có thể hỗ trợ anh/chị tra cứu thủ tục hành chính.",
+            status: "completed",
+            source: null,
+            cached: null,
+            knowledgeId: null,
+            model: null,
         },
     ]);
     const messageIdRef = useRef(Date.now() + 1);
     const activeStreamControllerRef = useRef<AbortController | null>(null);
+    const chatBodyRef = useRef<HTMLDivElement | null>(null);
+    const shouldAutoScrollChatRef = useRef(true);
+    const isMountedRef = useRef(true);
+    const visibleFeatureSections = useMemo(
+        () =>
+            featureSections
+                .map(section => ({
+                    ...section,
+                    items: section.items.filter(
+                        item => !item.roles || item.roles.includes(role),
+                    ),
+                }))
+                .filter(section => section.items.length > 0),
+        [role],
+    );
 
     const nextMessageId = () => {
         messageIdRef.current += 1;
-        return messageIdRef.current;
+        return String(messageIdRef.current);
     };
 
     const closeActiveStream = () => {
@@ -1811,11 +1730,34 @@ const HomePage: React.FunctionComponent = () => {
         activeStreamControllerRef.current = null;
     };
 
-    useEffect(() => {
-        return () => {
+    useEffect(
+        () => () => {
+            isMountedRef.current = false;
             closeActiveStream();
-        };
-    }, []);
+        },
+        [],
+    );
+
+    useEffect(() => {
+        const element = chatBodyRef.current;
+
+        if (!element) {
+            return;
+        }
+
+        if (!shouldAutoScrollChatRef.current) {
+            if (isChatOpen) {
+                setHasUnreadChatMessages(true);
+            }
+            return;
+        }
+
+        element.scrollTo({
+            top: element.scrollHeight,
+            behavior: "smooth",
+        });
+        setHasUnreadChatMessages(false);
+    }, [isChatOpen, messages]);
 
     useEffect(() => {
         let isExpanded = false;
@@ -1843,19 +1785,230 @@ const HomePage: React.FunctionComponent = () => {
         };
     }, []);
 
-    const handleSendMessage = async (event: React.FormEvent) => {
-        event.preventDefault();
-
-        const question = chatInput.trim();
-        if (!question || isSending) {
+    const applyAssistantMetadata = (
+        assistantMessageId: string,
+        metadata: Partial<ChatbotMetadata>,
+    ) => {
+        if (!isMountedRef.current) {
             return;
         }
 
-        closeActiveStream();
+        setMessages(current =>
+            current.map(message =>
+                message.id === assistantMessageId
+                    ? {
+                          ...message,
+                          source: metadata.source ?? message.source ?? null,
+                          cached: metadata.cached ?? message.cached ?? null,
+                          knowledgeId:
+                              metadata.knowledgeId ?? message.knowledgeId ?? null,
+                          model: metadata.model ?? message.model ?? null,
+                      }
+                    : message,
+            ),
+        );
+    };
+
+    const stopChatStream = () => {
+        activeStreamControllerRef.current?.abort();
+        activeStreamControllerRef.current = null;
+        setIsSending(false);
+    };
+
+    const startChatStream = async (question: string, assistantMessageId: string) => {
+        const streamController = new AbortController();
+        activeStreamControllerRef.current = streamController;
+        const timeoutId = window.setTimeout(
+            () => streamController.abort(),
+            CHAT_ASK_TIMEOUT_MS,
+        );
+
+        setChatError("");
+        setIsSending(true);
+        shouldAutoScrollChatRef.current = true;
+
+        setMessages(current =>
+            current.map(message =>
+                message.id === assistantMessageId
+                    ? {
+                          ...message,
+                          content: "",
+                          status: "pending",
+                          errorMessage: undefined,
+                          question,
+                      }
+                    : message,
+            ),
+        );
+
+        try {
+            await askChatbotStream(question, streamController.signal, {
+                onMetadata: metadata => {
+                    applyAssistantMetadata(assistantMessageId, metadata);
+                },
+                onDelta: delta => {
+                    if (!isMountedRef.current) {
+                        return;
+                    }
+
+                    setMessages(current =>
+                        current.map(message =>
+                            message.id === assistantMessageId
+                                ? {
+                                      ...message,
+                                      content: message.content + delta,
+                                      status: "streaming",
+                                  }
+                                : message,
+                        ),
+                    );
+                },
+                onDone: metadata => {
+                    if (!isMountedRef.current) {
+                        return;
+                    }
+
+                    applyAssistantMetadata(assistantMessageId, metadata);
+                    setMessages(current =>
+                        current.map(message =>
+                            message.id === assistantMessageId
+                                ? {
+                                      ...message,
+                                      content:
+                                          message.content ||
+                                          "Xin lỗi, tôi chưa thể trả lời câu hỏi này. Anh/chị vui lòng thử lại.",
+                                      status: "completed",
+                                  }
+                                : message,
+                        ),
+                    );
+                },
+                onError: message => {
+                    if (!isMountedRef.current) {
+                        return;
+                    }
+
+                    setChatError(message);
+                    setMessages(current =>
+                        current.map(chatMessage =>
+                            chatMessage.id === assistantMessageId
+                                ? {
+                                      ...chatMessage,
+                                      status: "error",
+                                      errorMessage: message,
+                                  }
+                                : chatMessage,
+                        ),
+                    );
+                },
+            });
+        } catch (error) {
+            if (!isMountedRef.current) {
+                return;
+            }
+
+            const wasStopped =
+                isAbortError(error) || streamController.signal.aborted;
+            let message = "Có lỗi xảy ra khi nhận câu trả lời.";
+
+            if (wasStopped) {
+                message = "Đã dừng tạo câu trả lời.";
+            } else if (error instanceof Error) {
+                message = error.message;
+            }
+
+            setChatError(wasStopped ? "" : message);
+            setMessages(current =>
+                current.map(chatMessage =>
+                    chatMessage.id === assistantMessageId
+                        ? {
+                              ...chatMessage,
+                              status: wasStopped ? "stopped" : "error",
+                              errorMessage: wasStopped ? undefined : message,
+                          }
+                        : chatMessage,
+                ),
+            );
+        } finally {
+            window.clearTimeout(timeoutId);
+            if (activeStreamControllerRef.current === streamController) {
+                activeStreamControllerRef.current = null;
+            }
+            if (isMountedRef.current) {
+                setIsSending(false);
+            }
+        }
+    };
+
+    const retryAssistantMessage = (message: ChatMessage) => {
+        if (!message.question || isSending) {
+            return;
+        }
+
+        shouldAutoScrollChatRef.current = true;
+        setHasUnreadChatMessages(false);
+        startChatStream(message.question, message.id).catch(() => undefined);
+    };
+
+    const copyAssistantMessage = (message: ChatMessage) => {
+        const content = message.content.trim();
+
+        if (!content) {
+            return;
+        }
+
+        const fallbackCopy = () => {
+            const textarea = document.createElement("textarea");
+            textarea.value = content;
+            textarea.setAttribute("readonly", "true");
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+        };
+
+        const copyPromise = navigator.clipboard?.writeText
+            ? navigator.clipboard.writeText(content)
+            : Promise.resolve().then(fallbackCopy);
+
+        copyPromise
+            .catch(fallbackCopy)
+            .finally(() => {
+                setCopiedMessageId(message.id);
+                window.setTimeout(() => {
+                    setCopiedMessageId(current =>
+                        current === message.id ? undefined : current,
+                    );
+                }, 1700);
+            });
+    };
+
+    const handleSendMessage = (event: React.FormEvent) => {
+        event.preventDefault();
+
+        const question = chatInput.trim();
+        if (isSending) {
+            return;
+        }
+
+        if (!question) {
+            setChatError("Vui lòng nhập câu hỏi trước khi gửi.");
+            return;
+        }
+
+        if (question.length > MAX_CHAT_QUESTION_LENGTH) {
+            setChatError("Câu hỏi tối đa 2000 ký tự.");
+            return;
+        }
 
         setChatInput("");
         setChatError("");
-        setIsSending(true);
+        shouldAutoScrollChatRef.current = true;
+
+        const assistantMessageId = nextMessageId();
+
         setMessages(current => [
             ...current,
             {
@@ -1863,164 +2016,122 @@ const HomePage: React.FunctionComponent = () => {
                 role: "user",
                 content: question,
             },
+            {
+                id: assistantMessageId,
+                role: "assistant",
+                content: "",
+                status: "pending",
+                source: null,
+                cached: null,
+                knowledgeId: null,
+                model: null,
+                question,
+            },
         ]);
 
-        const askController = new AbortController();
-        const askTimeoutId = window.setTimeout(
-            () => askController.abort(),
-            CHAT_ASK_TIMEOUT_MS,
-        );
+        startChatStream(question, assistantMessageId).catch(() => undefined);
+    };
 
-        try {
-            const response = await fetch(`${CHAT_API_BASE_URL}/chat/ask`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json; charset=utf-8",
-                    [CHAT_NGROK_BYPASS_HEADER]: "true",
-                },
-                body: JSON.stringify({ question }),
-                signal: askController.signal,
-            });
+    const handleChatBodyScroll = () => {
+        const element = chatBodyRef.current;
 
-            if (!response.ok) {
-                throw new Error("Không thể kết nối trợ lý người dân.");
-            }
-
-            const data = await response.json();
-
-            if (data?.cached === true) {
-                const assistantSources = getAssistantSources(data);
-                const shouldShowSourceNotice =
-                    hasSourceField(data) && assistantSources.length === 0;
-
-                setMessages(current => [
-                    ...current,
-                    {
-                        id: nextMessageId(),
-                        role: "assistant",
-                        content: getAssistantAnswer(data),
-                        sources: assistantSources,
-                        showSourceNotice: shouldShowSourceNotice,
-                    },
-                ]);
-                return;
-            }
-
-            const jobId = data?.jobId;
-
-            if (typeof jobId !== "string" || !jobId) {
-                throw new Error("Không nhận được mã yêu cầu từ máy chủ.");
-            }
-
-            const assistantMessageId = nextMessageId();
-
-            setMessages(current => [
-                ...current,
-                { id: assistantMessageId, role: "assistant", content: "" },
-            ]);
-
-            const streamController = new AbortController();
-            activeStreamControllerRef.current = streamController;
-            const streamTimeoutId = window.setTimeout(
-                () => streamController.abort(),
-                CHAT_STREAM_TIMEOUT_MS,
-            );
-
-            try {
-                await streamChatAnswer({
-                    jobId,
-                    signal: streamController.signal,
-                    onDelta: delta => {
-                        setMessages(current =>
-                            current.map(message =>
-                                message.id === assistantMessageId
-                                    ? {
-                                          ...message,
-                                          content: message.content + delta,
-                                      }
-                                    : message,
-                            ),
-                        );
-                    },
-                    onDone: ({ answer, sources }) => {
-                        setMessages(current =>
-                            current.map(message =>
-                                message.id === assistantMessageId
-                                    ? {
-                                          ...message,
-                                          content: answer,
-                                          sources,
-                                          showSourceNotice:
-                                              sources.length === 0,
-                                      }
-                                    : message,
-                            ),
-                        );
-                    },
-                    onError: errorMessage => {
-                        setChatError(errorMessage);
-                        setMessages(current =>
-                            current.map(message =>
-                                message.id === assistantMessageId
-                                    ? {
-                                          ...message,
-                                          content:
-                                              message.content ||
-                                              "Hiện chưa thể nhận câu trả lời. Anh/chị vui lòng thử lại sau.",
-                                      }
-                                    : message,
-                            ),
-                        );
-                    },
-                });
-            } catch (streamError) {
-                const message = isAbortError(streamError)
-                    ? "Trợ lý phản hồi quá lâu, vui lòng gửi lại câu hỏi."
-                    : "Có lỗi xảy ra khi nhận câu trả lời.";
-
-                setChatError(message);
-                setMessages(current =>
-                    current.map(m =>
-                        m.id === assistantMessageId
-                            ? {
-                                  ...m,
-                                  content:
-                                      m.content ||
-                                      "Hiện chưa thể nhận câu trả lời. Anh/chị vui lòng thử lại sau.",
-                              }
-                            : m,
-                    ),
-                );
-            } finally {
-                window.clearTimeout(streamTimeoutId);
-                if (activeStreamControllerRef.current === streamController) {
-                    activeStreamControllerRef.current = null;
-                }
-            }
-        } catch (error) {
-            let message = "Có lỗi xảy ra khi gửi câu hỏi.";
-
-            if (isAbortError(error)) {
-                message =
-                    "Trợ lý đang khởi động hoặc phản hồi quá lâu, vui lòng gửi lại câu hỏi.";
-            } else if (error instanceof Error) {
-                message = error.message;
-            }
-
-            setChatError(message);
-            setMessages(current => [
-                ...current,
-                {
-                    id: nextMessageId(),
-                    role: "assistant",
-                    content:
-                        "Hiện chưa thể gửi câu hỏi. Anh/chị vui lòng thử lại sau.",
-                },
-            ]);
-        } finally {
-            window.clearTimeout(askTimeoutId);
-            setIsSending(false);
+        if (!element) {
+            return;
         }
+
+        const distanceFromBottom =
+            element.scrollHeight - element.scrollTop - element.clientHeight;
+        const isNearBottom = distanceFromBottom < 80;
+        shouldAutoScrollChatRef.current = isNearBottom;
+
+        if (isNearBottom) {
+            setHasUnreadChatMessages(false);
+        }
+    };
+
+    const scrollChatToBottom = () => {
+        const element = chatBodyRef.current;
+
+        if (!element) {
+            return;
+        }
+
+        shouldAutoScrollChatRef.current = true;
+        setHasUnreadChatMessages(false);
+        element.scrollTo({
+            top: element.scrollHeight,
+            behavior: "smooth",
+        });
+    };
+
+    const renderAssistantMessage = (message: ChatMessage) => {
+        const isLoading =
+            !message.content &&
+            (message.status === "pending" || message.status === "streaming");
+
+        return (
+            <>
+                <AssistantMeta>{getAssistantSourceLabel(message)}</AssistantMeta>
+                {message.content && (
+                    <StreamingContent>
+                        <ReactMarkdown
+                            components={{
+                                html: () => null,
+                            }}
+                        >
+                            {message.content}
+                        </ReactMarkdown>
+                        {(message.status === "pending" ||
+                            message.status === "streaming") && <TypingCursor />}
+                    </StreamingContent>
+                )}
+                {isLoading && (
+                    <TypingDots aria-label="AI đang tạo câu trả lời">
+                        <span />
+                        <span />
+                        <span />
+                    </TypingDots>
+                )}
+                {message.status === "error" && !message.errorMessage && (
+                    <MessageError>
+                        Không thể nhận câu trả lời. Anh/chị vui lòng thử lại.
+                    </MessageError>
+                )}
+                {message.errorMessage && (
+                    <MessageError>{message.errorMessage}</MessageError>
+                )}
+                {message.status === "error" && (
+                    <MessageActionButton
+                        type="button"
+                        onClick={() => retryAssistantMessage(message)}
+                        disabled={isSending}
+                    >
+                        Thử lại
+                    </MessageActionButton>
+                )}
+                {message.status === "completed" && message.content && (
+                    <MessageActions>
+                        <MessageActionButton
+                            type="button"
+                            onClick={() => copyAssistantMessage(message)}
+                        >
+                            {copiedMessageId === message.id
+                                ? "Đã sao chép"
+                                : "Sao chép"}
+                        </MessageActionButton>
+                        {message.question && (
+                            <MessageActionButton
+                                type="button"
+                                onClick={() => retryAssistantMessage(message)}
+                                disabled={isSending}
+                            >
+                                Hỏi lại
+                            </MessageActionButton>
+                        )}
+                    </MessageActions>
+                )}
+            </>
+        );
     };
 
     const goToPage = (path?: string) => {
@@ -2031,7 +2142,7 @@ const HomePage: React.FunctionComponent = () => {
 
     const openFeature = (item: FeatureItem) => {
         if (item.url) {
-            void openWebView(item.url);
+            openWebView(item.url).catch(() => undefined);
             return;
         }
 
@@ -2057,6 +2168,7 @@ const HomePage: React.FunctionComponent = () => {
         const isExpanded = Boolean(expandedSections[section.title]);
         const hasHiddenItems =
             section.items.length > DEFAULT_VISIBLE_FEATURE_COUNT;
+        const label = isExpanded ? "Thu gọn" : section.more || "Xem thêm";
 
         if (!hasHiddenItems) {
             return null;
@@ -2069,7 +2181,7 @@ const HomePage: React.FunctionComponent = () => {
                 aria-expanded={isExpanded}
                 onClick={() => toggleSection(section.title)}
             >
-                {isExpanded ? "Thu gọn" : section.more ?? "Xem thêm"}
+                {label}
                 <Icon icon="zi-chevron-right" size={22} />
             </MoreLink>
         );
@@ -2090,6 +2202,15 @@ const HomePage: React.FunctionComponent = () => {
                             key={item.label}
                             onClick={() => openFeature(item)}
                         >
+                            {(item.path === "/task-assignments" ||
+                                item.path === "/received-tasks") &&
+                                unreadTaskNotifications > 0 && (
+                                    <TaskBadge>
+                                        {getTaskBadgeLabel(
+                                            unreadTaskNotifications,
+                                        )}
+                                    </TaskBadge>
+                                )}
                             <Medallion>
                                 {item.image ? (
                                     <FeatureIconImage src={item.image} alt="" />
@@ -2121,7 +2242,7 @@ const HomePage: React.FunctionComponent = () => {
                 <HeaderLogo aria-label="Công dân số" />
                 <HeaderText>
                     <HeaderTitle>CÔNG DÂN SỐ</HeaderTitle>
-                    <HeaderSubTitle>Xã Lộc Ninh - Tỉnh Tây Ninh</HeaderSubTitle>
+                            Tây Ninh
                 </HeaderText>
                 {/* <HeaderActions>
                     <SquareButton aria-label="Tìm kiếm">
@@ -2132,18 +2253,18 @@ const HomePage: React.FunctionComponent = () => {
 
             <Content>
                 <Hero>
-                    <HeroInner></HeroInner>
+                    <HeroInner />
                     <Dots>
                         <Dot />
                         <Dot $active />
                     </Dots>
                 </Hero>
 
-                {featureSections.slice(0, 2).map(renderFeatureSection)}
+                {visibleFeatureSections.slice(0, 2).map(renderFeatureSection)}
 
                 <BannerStrip>Tiện ích số </BannerStrip>
 
-                {featureSections.slice(2).map(renderFeatureSection)}
+                {visibleFeatureSections.slice(2).map(renderFeatureSection)}
 
                 <SectionBlock>
                     <SectionHead>
@@ -2172,7 +2293,7 @@ const HomePage: React.FunctionComponent = () => {
 
                     <DestinationBody>
                         <CardTitle>
-                            Tour Núi Bà Đen - Tòa Thánh Tây Ninh
+                            Tây Ninh
                         </CardTitle>
 
                         <MetaLine>
@@ -2333,7 +2454,7 @@ const HomePage: React.FunctionComponent = () => {
                             <RadioThumb>
                                 <img
                                     src={KHXH}
-                                    alt="Thủ tướng Chính phủ chỉ thị xây dựng kế hoạch phát triển KTXH"
+                            alt="Thủ tướng Chính phủ chỉ thị xây dựng kế hoạch phát triển KTXH và dự toán ngân sách nhà nước năm 2027"
                                 />
                             </RadioThumb>
 
@@ -2406,33 +2527,30 @@ const HomePage: React.FunctionComponent = () => {
                             </ChatCloseButton>
                         </ChatHeader>
 
-                        <ChatBody>
+                        <ChatBody
+                            ref={chatBodyRef}
+                            aria-live="polite"
+                            onScroll={handleChatBodyScroll}
+                        >
                             {messages.map(message => (
                                 <ChatBubble
                                     key={message.id}
                                     $role={message.role}
                                 >
-                                    {message.role === "assistant" ? (
-                                        message.content ? (
-                                            <ReactMarkdown>
-                                                {message.content}
-                                            </ReactMarkdown>
-                                        ) : (
-                                            "Đang tìm câu trả lời..."
-                                        )
-                                    ) : (
-                                        message.content
-                                    )}
+                                    {message.role === "assistant"
+                                        ? renderAssistantMessage(message)
+                                        : message.content}
                                 </ChatBubble>
                             ))}
-                            {isSending &&
-                                messages[messages.length - 1]?.role !==
-                                    "assistant" && (
-                                    <ChatBubble $role="assistant">
-                                        Đang tìm câu trả lời...
-                                    </ChatBubble>
-                                )}
                         </ChatBody>
+                        {hasUnreadChatMessages && (
+                            <NewMessagesButton
+                                type="button"
+                                onClick={scrollChatToBottom}
+                            >
+                                Xuống tin nhắn mới
+                            </NewMessagesButton>
+                        )}
 
                         <div>
                             {chatError && <ChatError>{chatError}</ChatError>}
@@ -2441,6 +2559,8 @@ const HomePage: React.FunctionComponent = () => {
                                     value={chatInput}
                                     placeholder="Nhập câu hỏi của anh/chị..."
                                     rows={1}
+                                    maxLength={MAX_CHAT_QUESTION_LENGTH}
+                                    disabled={isSending}
                                     onChange={event =>
                                         setChatInput(event.target.value)
                                     }
@@ -2456,12 +2576,32 @@ const HomePage: React.FunctionComponent = () => {
                                 />
                                 <ChatSendButton
                                     type="submit"
-                                    aria-label="Gửi câu hỏi"
-                                    disabled={!chatInput.trim() || isSending}
+                                    aria-label={
+                                        isSending
+                                            ? "Đang gửi câu hỏi"
+                                            : "Gửi câu hỏi"
+                                    }
+                                    disabled={isSending || !chatInput.trim()}
+                                    $stopping={isSending}
                                 >
-                                    <Icon icon="zi-arrow-right" size={23} />
+                                    <Icon
+                                        icon={
+                                            isSending
+                                                ? "zi-close"
+                                                : "zi-arrow-right"
+                                        }
+                                        size={23}
+                                    />
                                 </ChatSendButton>
                             </ChatForm>
+                            {isSending && (
+                                <StopGenerationButton
+                                    type="button"
+                                    onClick={stopChatStream}
+                                >
+                                    Dừng tạo câu trả lời
+                                </StopGenerationButton>
+                            )}
                         </div>
                     </ChatPanel>
                 </>
@@ -2472,3 +2612,5 @@ const HomePage: React.FunctionComponent = () => {
 };
 
 export default HomePage;
+
+

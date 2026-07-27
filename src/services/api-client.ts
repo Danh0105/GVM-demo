@@ -16,17 +16,21 @@ export class ApiError extends Error {
 
     retryAfter?: number;
 
+    details?: unknown;
+
     constructor(
         message: string,
         status: number,
         error?: string,
         retryAfter?: number,
+        details?: unknown,
     ) {
         super(message);
         this.name = "ApiError";
         this.status = status;
         this.error = error;
         this.retryAfter = retryAfter;
+        this.details = details;
     }
 }
 
@@ -65,14 +69,15 @@ const readErrorBody = async (response: Response) => {
         const body = JSON.parse(text) as {
             message?: string | string[];
             error?: string;
+            details?: unknown;
         };
         const message = Array.isArray(body.message)
             ? body.message.join(", ")
             : body.message || body.error || fallback;
 
-        return { message, error: body.error };
+        return { message, error: body.error, details: body.details };
     } catch {
-        return { message: fallback };
+        return { message: fallback, details: undefined };
     }
 };
 
@@ -260,7 +265,7 @@ export async function apiFetch(
             retryAfter,
         });
 
-        throw new ApiError(message, 429, body.error, retryAfter);
+        throw new ApiError(message, 429, body.error, retryAfter, body.details);
     }
 
     if (response.status === 413) {
@@ -268,8 +273,16 @@ export async function apiFetch(
             "Tệp vượt quá dung lượng cho phép (tối đa 20MB).",
             413,
             body.error,
+            undefined,
+            body.details,
         );
     }
 
-    throw new ApiError(body.message, response.status, body.error);
+    throw new ApiError(
+        body.message,
+        response.status,
+        body.error,
+        undefined,
+        body.details,
+    );
 }

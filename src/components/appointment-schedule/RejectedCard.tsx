@@ -34,7 +34,7 @@ const RejectedCard: FC<RejectedCardProps> = ({ reason }) => {
                 </Box>
                 <Box mt={3}>
                     <CardTitle size="small">
-                        Đặt lịch không thành công
+                        Hẹn làm việc không thành công
                     </CardTitle>
                 </Box>
                 <Box mt={3}>

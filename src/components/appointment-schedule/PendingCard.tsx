@@ -30,7 +30,7 @@ const PendingCard: FC = () => {
                 </Box>
                 <Box mt={3}>
                     <CardTitle size="small">
-                        Đặt lịch làm việc thành công
+                        Gửi yêu cầu hẹn thành công
                     </CardTitle>
                 </Box>
                 <Box mt={3}>

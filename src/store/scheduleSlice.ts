@@ -58,17 +58,10 @@ const scheduleSlice: StateCreator<
         params: Omit<CreateWorkScheduleParams, "organizationId">,
     ) => {
         try {
-            await get().getAccessToken();
-
-            if (!get().token) {
-                throw new Error("Không thể xác thực bằng Zalo.");
-            }
-
             const organizationId = get().organization?.id;
 
             set(state => ({
                 ...state,
-
                 creatingSchedule: true,
             }));
 
@@ -82,7 +75,7 @@ const scheduleSlice: StateCreator<
             set(state => ({
                 ...state,
                 error: {
-                    message: "Đã có lỗi xảy ra, vui lòng thử lại sau!",
+                    message: "Không thể gửi yêu cầu hẹn, vui lòng thử lại sau!",
                 },
             }));
         } finally {
