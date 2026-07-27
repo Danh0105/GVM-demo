@@ -46,7 +46,7 @@ export const getAttendanceText = (status: AttendanceStatus): string => {
     const statusMap: Record<AttendanceStatus, string> = {
         "checked-in": "Đã điểm danh",
         absent: "Vắng mặt",
-        delegated: "Được chuyển tham dự",
+        excused: "Vắng có lý do",
     };
 
     return statusMap[status];

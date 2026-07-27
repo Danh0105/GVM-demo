@@ -103,7 +103,7 @@ export const meetingData: Meeting[] = [
                 name: "Bùi Ngọc Anh",
                 position: "Công chức thống kê",
                 department: "Văn phòng HĐND và UBND",
-                attendanceStatus: "delegated",
+                attendanceStatus: "excused",
             },
         ],
         documentIds: ["doc-004"],
@@ -230,7 +230,7 @@ export const attendanceData: Attendance[] = [
         meetingTitle: "Họp chuyên đề an toàn thông tin",
         time: "2026-07-15T09:00:00+07:00",
         location: "Phòng họp trực tuyến",
-        status: "delegated",
+        status: "excused",
         note: "Ủy quyền cho Phạm Thu Hà tham dự và báo cáo lại nội dung.",
     },
     {

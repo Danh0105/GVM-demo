@@ -124,6 +124,7 @@ const featureSections: Section[] = [
                 image: MEETING_ROOM,
                 path: "/meeting-rooms",
                 roles: [
+                    SYSTEM_ROLES.USER,
                     SYSTEM_ROLES.WARD_CHAIRMAN,
                     SYSTEM_ROLES.NEIGHBORHOOD_HEAD,
                 ],
@@ -2611,6 +2612,5 @@ const HomePage: React.FunctionComponent = () => {
 };
 
 export default HomePage;
-
 
 
