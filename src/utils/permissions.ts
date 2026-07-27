@@ -26,6 +26,7 @@ export const canUseMeetings = (user?: User): boolean => {
     const role = getSystemRole(user);
 
     return (
+        role === SYSTEM_ROLES.USER ||
         role === SYSTEM_ROLES.WARD_CHAIRMAN ||
         role === SYSTEM_ROLES.NEIGHBORHOOD_HEAD
     );

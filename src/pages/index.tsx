@@ -65,6 +65,7 @@ import { WardTaskDetailPage } from "./WardTasks";
 import { UserManagementPage } from "./UserManagement";
 
 const meetingRoles = [
+    SYSTEM_ROLES.USER,
     SYSTEM_ROLES.WARD_CHAIRMAN,
     SYSTEM_ROLES.NEIGHBORHOOD_HEAD,
 ];
