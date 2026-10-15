@@ -63,6 +63,7 @@ import {
 import { ReceivedTasksPage } from "./ReceivedTasks";
 import { WardTaskDetailPage } from "./WardTasks";
 import { UserManagementPage } from "./UserManagement";
+import SmartSchoolsPage, { SchoolDetailPage } from "./SmartSchools/SmartSchoolsPage";
 
 const meetingRoles = [
     SYSTEM_ROLES.USER,
@@ -78,6 +79,8 @@ const Routes: React.FC = () => (
     <ZMPRouter>
         <AnimationRoutes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/smart-schools" element={<SmartSchoolsPage />} />
+            <Route path="/smart-schools/:id" element={<SchoolDetailPage />} />
             <Route path="/index.html" element={<HomePage />} />
             <Route path="/hanh-chinh-cong" element={<HomePage />} />
             <Route path="/news" element={<NewsPage />} />

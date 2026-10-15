@@ -200,6 +200,11 @@ const featureSections: Section[] = [
                 image: TELEVISION,
                 path: "/television",
             },
+            {
+                label: "Trường học thông minh",
+                image: DIGITAL_LITERACY,
+                path: "/smart-schools",
+            },
         ],
     },
     {

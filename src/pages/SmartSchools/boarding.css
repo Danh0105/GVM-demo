@@ -1,0 +1,394 @@
+.boarding-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.boarding-title h2 {
+    font-size: 21px;
+}
+.boarding-title > span {
+    flex-shrink: 0;
+}
+.boarding-stats .school-stat strong {
+    font-size: 25px;
+}
+.boarding-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 24px 0 18px;
+}
+.boarding-section-heading h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.boarding-section-heading h2 svg {
+    color: #147d75;
+}
+.boarding-modes {
+    display: flex;
+    background: #e8eeed;
+    border: 1px solid #d8e3df;
+    border-radius: 5px;
+    padding: 3px;
+    flex-shrink: 0;
+}
+.boarding-modes button {
+    width: 55px;
+    height: 30px;
+    font-size: 12px;
+    background: transparent;
+    border: 0;
+    border-radius: 3px;
+    color: #6c827c;
+}
+.boarding-modes button[aria-pressed="true"] {
+    background: #fff;
+    color: #116b61;
+    font-weight: 700;
+    box-shadow: 0 1px 3px #0000000d;
+}
+.boarding-filters {
+    display: grid;
+    grid-template-columns: 1fr 0.7fr 0.7fr 1.4fr;
+    gap: 12px;
+}
+.boarding-filters label,
+.boarding-day-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: #667e87;
+    font-size: 11px;
+}
+.boarding-filters select,
+.boarding-day-filter select {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    border: 1px solid #d6e3df;
+    border-radius: 5px;
+    background: #fff;
+    color: #354e58;
+    font-size: 12px;
+    padding: 0 9px;
+}
+.boarding-day-filter {
+    max-width: 330px;
+    margin-bottom: 18px;
+}
+.boarding-calendar-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 0 12px;
+    color: #63817b;
+    font-size: 11px;
+}
+.boarding-calendar-toolbar > div {
+    display: flex;
+    gap: 6px;
+}
+.boarding-calendar-toolbar .school-icon {
+    width: 30px;
+    height: 30px;
+}
+.boarding-week-table {
+    width: 100%;
+    overflow-x: auto;
+}
+.boarding-week-table table {
+    width: 100%;
+    min-width: 980px;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.boarding-week-table th,
+.boarding-week-table td {
+    border: 1px solid #e0e8e6;
+    padding: 12px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+.boarding-week-table thead th {
+    color: #fff;
+    background: #38505a;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 650;
+}
+.boarding-week-table thead th:first-child {
+    text-align: left;
+    width: 120px;
+}
+.boarding-week-table thead small {
+    display: block;
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    opacity: 0.9;
+}
+.boarding-week-table tbody th {
+    background: #fff;
+    color: #436e62;
+}
+.boarding-week-table tbody th > svg {
+    margin-bottom: 8px;
+}
+.boarding-week-table tbody th strong,
+.boarding-week-table tbody th small,
+.boarding-week-table tbody th span {
+    display: block;
+    margin-bottom: 6px;
+}
+.boarding-week-table tbody th small {
+    color: #8b9c97;
+    font-size: 9px;
+    font-weight: 500;
+}
+.boarding-week-table tbody th span {
+    font-size: 11px;
+}
+.boarding-week-table tbody td {
+    background: #f1f8f5;
+}
+.boarding-week-table tbody td:nth-last-child(-n + 2) {
+    background: #f4f6f7;
+}
+.boarding-options {
+    display: grid;
+    gap: 8px;
+}
+.boarding-dish {
+    display: flex;
+    gap: 7px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #e0e9e5;
+    border-radius: 5px;
+    align-items: flex-start;
+    min-width: 0;
+}
+.boarding-dish img {
+    width: 30px;
+    height: 34px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border-radius: 3px;
+}
+.boarding-dish > div {
+    min-width: 0;
+}
+.boarding-dish small {
+    color: #399887;
+    font-size: 8px;
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 650;
+}
+.boarding-dish strong {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+.boarding-no-meal {
+    display: block;
+    font-size: 11px;
+    color: #8d9c99;
+    text-align: center;
+    padding: 18px 0;
+}
+.school-page .boarding-day-color.day-0 {
+    background: #278d76;
+}
+.school-page .boarding-day-color.day-1 {
+    background: #4488b2;
+}
+.school-page .boarding-day-color.day-2 {
+    background: #66a44f;
+}
+.school-page .boarding-day-color.day-3 {
+    background: #a58143;
+}
+.school-page .boarding-day-color.day-4 {
+    background: #8773ac;
+}
+.school-page .boarding-day-color.day-5,
+.school-page .boarding-day-color.day-6 {
+    background: #81969a;
+}
+.boarding-day-list.weekly {
+    display: none;
+}
+.boarding-day-list.daily {
+    max-width: 750px;
+}
+.boarding-day {
+    margin-bottom: 18px;
+}
+.boarding-day h3 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: #fff;
+    font-size: 14px;
+    padding: 12px 14px;
+}
+.boarding-day h3 span {
+    font-size: 11px;
+    font-weight: 500;
+}
+.boarding-daily-meal {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid #e0e8e6;
+}
+.boarding-meal-label strong {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 13px;
+    color: #367664;
+}
+.boarding-meal-label > span {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    line-height: 1.7;
+    margin-top: 6px;
+    color: #849890;
+}
+.boarding-daily-meal .boarding-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.boarding-daily-meal .boarding-dish {
+    padding: 10px;
+}
+.boarding-daily-meal .boarding-dish img {
+    width: 44px;
+    height: 44px;
+}
+.boarding-daily-meal .boarding-dish small {
+    font-size: 9px;
+}
+.boarding-daily-meal .boarding-dish strong {
+    font-size: 12px;
+}
+.boarding-weekend {
+    padding: 20px 14px;
+    font-size: 12px;
+    color: #839895;
+    border-bottom: 1px solid #e0e8e6;
+}
+.boarding-info {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid #d8e3df;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 30px;
+}
+.boarding-info h2 {
+    margin-bottom: 8px;
+}
+.boarding-info .school-info {
+    display: block;
+}
+.boarding-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+@media (max-width: 700px) {
+    .boarding-stats .school-stat strong {
+        font-size: 22px;
+    }
+    .boarding-title h2 {
+        font-size: 19px;
+    }
+    .boarding-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 10px;
+    }
+    .boarding-week-filter {
+        grid-column: 1 / -1;
+    }
+    .boarding-filters label:first-child {
+        grid-column: 1 / -1;
+    }
+    .boarding-week-table {
+        display: none;
+    }
+    .boarding-day-list.weekly {
+        display: block;
+    }
+    .boarding-daily-meal {
+        display: block;
+        padding: 14px 0;
+    }
+    .boarding-daily-meal .boarding-options {
+        margin-top: 10px;
+    }
+    .boarding-meal-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .boarding-meal-label > span {
+        margin-top: 0;
+    }
+    .boarding-daily-meal .boarding-dish img {
+        width: 30px;
+        height: 34px;
+    }
+    .boarding-daily-meal .boarding-dish strong {
+        font-size: 11px;
+    }
+    .boarding-daily-meal .boarding-dish {
+        padding: 8px;
+    }
+    .boarding-info {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    .boarding-section-heading h2 {
+        font-size: 15px;
+    }
+    .boarding-section-heading .school-muted {
+        font-size: 10px;
+    }
+    .boarding-title .school-status {
+        font-size: 9px;
+    }
+}
+@media (max-width: 360px) {
+    .boarding-daily-meal .boarding-options {
+        grid-template-columns: 1fr;
+    }
+    .boarding-meal-label > span {
+        font-size: 9px;
+    }
+    .boarding-modes button {
+        width: 46px;
+    }
+}

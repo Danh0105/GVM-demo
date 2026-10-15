@@ -53,9 +53,12 @@ export const followOfficialAccount = async ({
     }
 };
 
-export const openWebView = async (link: string): Promise<void> => {
+export const openWebView = async (
+    link: string,
+    config?: Parameters<typeof openWebview>[0]["config"],
+): Promise<void> => {
     try {
-        await openWebview({ url: link });
+        await openWebview({ url: link, config });
 
         return Promise.resolve();
     } catch (error) {
